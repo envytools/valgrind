@@ -4640,6 +4640,8 @@ AC_CONFIG_FILES([
    massif/ms_print
    lackey/Makefile
    lackey/tests/Makefile
+   mmt/Makefile
+   mmt/tests/Makefile
    none/Makefile
    none/tests/Makefile
    none/tests/scripts/Makefile
