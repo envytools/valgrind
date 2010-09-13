@@ -8,6 +8,7 @@ TOOLS =		memcheck \
 		callgrind \
 		massif \
 		lackey \
+		mmt \
 		none \
 		helgrind \
 		drd
