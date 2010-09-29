@@ -248,13 +248,11 @@ void trace_store4(Addr addr, Addr inst_addr, UWord value1, UWord value2, UWord v
 #endif
 
 static VG_REGPARM(2)
-void trace_load(Addr addr, SizeT size, UInt inst_addr)
+void trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value)
 {
 	struct mmt_mmap_data *region;
-	UInt value;
 	char valstr[64];
 	char namestr[256];
-	int x;
 
 	region = find_mmap(addr);
 	if (!region)
@@ -263,39 +261,306 @@ void trace_load(Addr addr, SizeT size, UInt inst_addr)
 	switch (size)
 	{
 		case 1:
-			value = *(UChar *) addr;
-			VG_(sprintf) (valstr, "0x%02x", value);
+			VG_(sprintf) (valstr, "0x%02lx", value);
 			break;
 		case 2:
-			value = *(UShort *) addr;
-			VG_(sprintf) (valstr, "0x%04x", value);
+			VG_(sprintf) (valstr, "0x%04lx", value);
 			break;
 		case 4:
-			value = *(UInt *) addr;
-			VG_(sprintf) (valstr, "0x%08x", value);
+			VG_(sprintf) (valstr, "0x%08lx", value);
 			break;
+#ifdef MMT_64BIT
+		case 8:
+			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value >> 32, value & 0xffffffff);
+			break;
+#endif
 		default:
-			size /= 4;
-
-			for (x = 0; x < size; ++x)
-				VG_(sprintf) (valstr + x * 11, "0x%08x,", ((UInt *) addr)[x]);
-			valstr[size * 11 - 1] = 0;
+			return;
 	}
 	mydescribe(inst_addr, namestr, 256);
 
 	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
 
-static void add_trace_load(IRSB * bb, IRExpr * addr, Int size, Addr inst_addr)
+static VG_REGPARM(2)
+void trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2)
 {
-	IRExpr **argv = mkIRExprVec_3(addr, mkIRExpr_HWord(size),
-					  mkIRExpr_HWord(inst_addr));
+	struct mmt_mmap_data *region;
+	char valstr[64];
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (!region)
+		return;
+
+	switch (size)
+	{
+		case 4:
+			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value1, value2);
+			break;
+#ifdef MMT_64BIT
+		case 8:
+			VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx",
+					value1 >> 32, value1 & 0xffffffff,
+					value2 >> 32, value2 & 0xffffffff);
+			break;
+#endif
+		default:
+			return;
+	}
+	mydescribe(inst_addr, namestr, 256);
+
+	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+}
+
+#ifndef MMT_64BIT
+static VG_REGPARM(2)
+void trace_load4(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2, UWord value3, UWord value4)
+{
+	struct mmt_mmap_data *region;
+	char valstr[64];
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (!region)
+		return;
+
+	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
+	mydescribe(inst_addr, namestr, 256);
+
+	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+}
+#endif
+
+static void add_trace_load1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1)
+{
+	IRExpr **argv = mkIRExprVec_4(addr, mkIRExpr_HWord(size),
+					  mkIRExpr_HWord(inst_addr), val1);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_load",
 					VG_(fnptr_to_fnentry) (trace_load),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
+
+static void add_trace_load2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2)
+{
+	IRExpr **argv = mkIRExprVec_5(addr, mkIRExpr_HWord(size),
+					  mkIRExpr_HWord(inst_addr), val1, val2);
+	IRDirty *di = unsafeIRDirty_0_N(2,
+					"trace_load2",
+					VG_(fnptr_to_fnentry) (trace_load2),
+					argv);
+	addStmtToIRSB(bb, IRStmt_Dirty(di));
+}
+
+#ifndef MMT_64BIT
+static void add_trace_load4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2, IRExpr *val3, IRExpr *val4)
+{
+	IRExpr **argv = mkIRExprVec_7(addr, mkIRExpr_HWord(size),
+					  mkIRExpr_HWord(inst_addr), val1, val2, val3, val4);
+	IRDirty *di = unsafeIRDirty_0_N(2,
+					"trace_load4",
+					VG_(fnptr_to_fnentry) (trace_load4),
+					argv);
+	addStmtToIRSB(bb, IRStmt_Dirty(di));
+}
+#endif
+
+#ifdef MMT_64BIT
+static void add_trace_load(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *data, IRType arg_ty)
+{
+	IRTemp t;
+	IRStmt *cast;
+	IRExpr *data1, *data2;
+
+	switch (arg_ty)
+	{
+		case Ity_I8:
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_8Uto64, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_I16:
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_16Uto64, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_F32:
+			// reinterpret as I32
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_ReinterpF32asI32, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			// no break;
+		case Ity_I32:
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_32Uto64, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_F64:
+			// reinterpret as I64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_ReinterpF64asI64, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+			// no break;
+
+		case Ity_I64:
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_V128:
+			// upper 64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V128HIto64, data));
+			addStmtToIRSB(bb, cast);
+			data1 = IRExpr_RdTmp(t);
+
+			// lower 64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V128to64, data));
+			addStmtToIRSB(bb, cast);
+			data2 = IRExpr_RdTmp(t);
+
+			add_trace_load2(bb, addr, sizeofIRType(Ity_I64), inst_addr, data1, data2);
+			break;
+		default:
+			VG_(message) (Vg_UserMsg, "Warning! we missed a read of 0x%08x\n", (UInt) arg_ty);
+			break;
+	}
+}
+#else
+static void add_trace_load(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *data, IRType arg_ty)
+{
+	IRTemp t;
+	IRStmt *cast;
+	IRExpr *data0;
+	IRExpr *data1, *data2;
+	IRExpr *data3, *data4;
+
+	switch (arg_ty)
+	{
+		case Ity_I8:
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_8Uto32, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_I16:
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_16Uto32, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_F32:
+			// reinterpret as I32
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_ReinterpF32asI32, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+
+			// no break;
+		case Ity_I32:
+			add_trace_load1(bb, addr, size, inst_addr, data);
+			break;
+
+		case Ity_F64:
+			// reinterpret as I64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_ReinterpF64asI64, data));
+
+			addStmtToIRSB(bb, cast);
+			data = IRExpr_RdTmp(t);
+			// no break;
+		case Ity_I64:
+			// we cannot pass whole 64-bit value in one parameter, so we split it
+
+			// upper 32
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64HIto32, data));
+			addStmtToIRSB(bb, cast);
+			data1 = IRExpr_RdTmp(t);
+
+			// lower 32
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64to32, data));
+			addStmtToIRSB(bb, cast);
+			data2 = IRExpr_RdTmp(t);
+
+			add_trace_load2(bb, addr, sizeofIRType(Ity_I32), inst_addr, data1, data2);
+			break;
+		case Ity_V128:
+			// upper 64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V128HIto64, data));
+			addStmtToIRSB(bb, cast);
+			data0 = IRExpr_RdTmp(t);
+
+			// upper 32 of upper 64
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64HIto32, data0));
+			addStmtToIRSB(bb, cast);
+			data1 = IRExpr_RdTmp(t);
+
+			// lower 32 of upper 64
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64to32, data0));
+			addStmtToIRSB(bb, cast);
+			data2 = IRExpr_RdTmp(t);
+
+			// lower 64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V128to64, data));
+			addStmtToIRSB(bb, cast);
+			data0 = IRExpr_RdTmp(t);
+
+			// upper 32 of lower 64
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64HIto32, data0));
+			addStmtToIRSB(bb, cast);
+			data3 = IRExpr_RdTmp(t);
+
+			// lower 32 of lower 64
+			t = newIRTemp(bb->tyenv, Ity_I32);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_64to32, data0));
+			addStmtToIRSB(bb, cast);
+			data4 = IRExpr_RdTmp(t);
+
+			add_trace_load4(bb, addr, sizeofIRType(Ity_I32), inst_addr, data1, data2, data3, data4);
+			break;
+		default:
+			VG_(message) (Vg_UserMsg, "Warning! we missed a read of 0x%08x\n", (UInt) arg_ty);
+			break;
+	}
+}
+#endif
 
 static void
 add_trace_store1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
@@ -399,8 +664,7 @@ static void add_trace_store(IRSB *bbOut, IRExpr *destAddr, Addr inst_addr,
 			add_trace_store1(bbOut, destAddr, size, inst_addr, data_expr);
 			break;
 		case Ity_V128:
-			// because of shortcomings in valgrind, we cannot pass whole
-			// 128-bit value in one parameter
+			// we cannot pass whole 128-bit value in one parameter, so we split it
 			
 			// upper 64
 			t = newIRTemp(bbOut->tyenv, Ity_I64);
@@ -476,8 +740,7 @@ static void add_trace_store(IRSB *bbOut, IRExpr *destAddr, Addr inst_addr,
 			data_expr = IRExpr_RdTmp(t);
 			// no break;
 		case Ity_I64:
-			// because of shortcomings in valgrind, we cannot pass whole
-			// 64-bit value in one parameter
+			// we cannot pass whole 64-bit value in one parameter, so we split it
 			
 			// upper 32
 			t = newIRTemp(bbOut->tyenv, Ity_I32);
@@ -579,7 +842,10 @@ static IRSB *mmt_instrument(VgCallbackClosure *closure,
 			continue;
 
 		if (st->tag == Ist_IMark)
+		{
 			inst_addr = st->Ist.IMark.addr;
+			addStmtToIRSB(bbOut, st);
+		}
 		else if (st->tag == Ist_Store && dump_store)
 		{
 			data_expr = st->Ist.Store.data;
@@ -588,6 +854,7 @@ static IRSB *mmt_instrument(VgCallbackClosure *closure,
 
 			add_trace_store(bbOut, st->Ist.Store.addr, inst_addr,
 					arg_ty, data_expr);
+			addStmtToIRSB(bbOut, st);
 		}
 		else if (st->tag == Ist_WrTmp && dump_load)
 		{
@@ -595,13 +862,25 @@ static IRSB *mmt_instrument(VgCallbackClosure *closure,
 
 			if (data_expr->tag == Iex_Load)
 			{
+				IRTemp dest = st->Ist.WrTmp.tmp;
+				IRExpr *value;
+
+				addStmtToIRSB(bbOut, st);
+
+				value = IRExpr_RdTmp(dest);
+
+				arg_ty = typeOfIRExpr(bbIn->tyenv, value);
+
 				add_trace_load(bbOut, data_expr->Iex.Load.addr,
 						sizeofIRType(data_expr->Iex.Load.ty),
-						inst_addr);
+						inst_addr, value, arg_ty);
 			}
+			else
+				addStmtToIRSB(bbOut, st);
 		}
+		else
+			addStmtToIRSB(bbOut, st);
 
-		addStmtToIRSB(bbOut, st);
 	}
 	return bbOut;
 }
