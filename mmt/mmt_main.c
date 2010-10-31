@@ -78,16 +78,103 @@ static struct object_type {
 	UInt cargs;		// number of constructor args (uint32)
 } object_types[] =
 {
-	{0x2080, "NV_CONTROL", 0},
-	{0x307e, NULL, 0},
+	{0x0000, "NV_CONTEXT_NEW", 0},
+
+	{0x0004, "NV_PTIMER", 0},
+
+	{0x0041, "NV_CONTEXT", 0},
+
 	{0x502d, "NV50_2D", 0},
-	{0x5039, "NV50_MEMORY_TO_MEMORY_FORMAT", 0},
-	{0x506f, "NV_FIFO", 6},
+	{0x902d, "NVC0_2D", 0},
+
+	{0x5039, "NV50_M2MF", 0},
+	{0x9039, "NVC0_M2MF", 0},
+
+	{0x9068, "NVC0_PEEPHOLE", 0},
+
+	{0x406e, "NV40_FIFO_DMA", 6},
+
+	{0x506f, "NV50_FIFO_IB", 6},
+	{0x826f, "NV84_FIFO_IB", 6},
+	{0x906f, "NVC0_FIFO_IB", 6},
+
+	{0x5070, "NV84_DISPLAY", 4},
+	{0x8270, "NV84_DISPLAY", 4},
+	{0x8370, "NVA0_DISPLAY", 4},
+	{0x8870, "NV98_DISPLAY", 4},
+	{0x8570, "NVA3_DISPLAY", 4},
+
 	{0x5072, NULL, 8},
-	{0x50c0, NULL, 0},
-	{0x8270, "NV04_MEMORY_TO_MEMORY_FORMAT", 4},
-	{0x827c, "NV03_SCALED_IMAGE_FROM_MEMORY", 8},
-	{0x8297, "NV50TCL", 0},
+
+	{0x7476, "NV84_VP", 0},
+
+	{0x507a, "NV50_DISPLAY_CURSOR", 0},
+	{0x827a, "NV84_DISPLAY_CURSOR", 0},
+	{0x857a, "NVA3_DISPLAY_CURSOR", 0},
+
+	{0x507b, "NV50_DISPLAY_OVERLAY", 0},
+	{0x827b, "NV84_DISPLAY_OVERLAY", 0},
+	{0x857b, "NVA3_DISPLAY_OVERLAY", 0},
+
+	{0x507c, "NV50_DISPLAY_SYNC_FIFO", 8},
+	{0x827c, "NV84_DISPLAY_SYNC_FIFO", 8},
+	{0x837c, "NVA0_DISPLAY_SYNC_FIFO", 8},
+	{0x857c, "NVA3_DISPLAY_SYNC_FIFO", 8},
+
+	{0x507d, "NV50_DISPLAY_MASTER_FIFO", 0},
+	{0x827d, "NV84_DISPLAY_MASTER_FIFO", 0},
+	{0x837d, "NVA0_DISPLAY_MASTER_FIFO", 0},
+	{0x887d, "NV98_DISPLAY_MASTER_FIFO", 0},
+	{0x857d, "NVA3_DISPLAY_MASTER_FIFO", 0},
+
+	{0x307e, "NV30_PEEPHOLE", 0},
+
+	{0x507e, "NV50_DISPLAY_OVERLAY_FIFO", 8},
+	{0x827e, "NV84_DISPLAY_OVERLAY_FIFO", 8},
+	{0x837e, "NVA0_DISPLAY_OVERLAY_FIFO", 8},
+	{0x857e, "NVA3_DISPLAY_OVERLAY_FIFO", 8},
+
+	{0x0080, "NV_DEVICE", 1},
+	{0x2080, "NV_SUBDEVICE_0", 0},
+	{0x2081, "NV_SUBDEVICE_1", 0},
+	{0x2082, "NV_SUBDEVICE_2", 0},
+	{0x2083, "NV_SUBDEVICE_3", 0},
+
+	{0x5097, "NV50_3D", 0},
+	{0x8297, "NV84_3D", 0},
+	{0x8397, "NVA0_3D", 0},
+	{0x8597, "NVA3_3D", 0},
+	{0x8697, "NVAF_3D", 0},
+	{0x9097, "NVC0_3D", 0},
+
+	{0x74b0, "NV84_BSP", 0},
+
+	{0x88b1, "NV98_BSP", 0},
+	{0x85b1, "NVA3_BSP", 0},
+	{0x86b1, "NVAF_BSP", 0},
+	{0x90b1, "NVC0_BSP", 0},
+
+	{0x88b2, "NV98_VP", 0},
+	{0x85b2, "NVA3_VP", 0},
+	{0x90b2, "NVC0_VP", 0},
+
+	{0x88b3, "NV98_PPP", 0},
+	{0x85b3, "NVA3_PPP", 0},
+	{0x90b3, "NVC0_PPP", 0},
+
+	{0x88b4, "NV98_CRYPT", 0},
+
+	{0x85b5, "NVA3_COPY", 0},
+	{0x90b5, "NVC0_COPY0", 0},
+
+	{0x50c0, "NV50_COMPUTE", 0},
+	{0x85c0, "NVA3_COMPUTE", 0},
+	{0x90c0, "NVC0_COMPUTE", 0},
+
+	{0x74c1, "NV84_CRYPT", 0},
+
+	{0x50e0, "NV50_PGRAPH", 0},
+	{0x50e2, "NV50_PFIFO", 0},
 };
 
 static UInt current_item = 1;
