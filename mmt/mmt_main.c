@@ -1070,7 +1070,7 @@ static void pre_ioctl(ThreadId tid, UWord *args, UInt nArgs)
 	UInt obj1, obj2, size;
 	int i;
 
-	if (!FD_ISSET(fd, &nvidiactl_fds))
+	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
 
 	if ((id & 0x0000FF00) == 0x4600)
@@ -1277,7 +1277,7 @@ static void post_ioctl(ThreadId tid, UWord *args, UInt nArgs)
 	int i;
 	struct mmt_mmap_data *region;
 
-	if (!FD_ISSET(fd, &nvidiactl_fds))
+	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
 
 	if ((id & 0x0000FF00) == 0x4600)
