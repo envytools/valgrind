@@ -1039,6 +1039,7 @@ static void dumpmem(char *s, Addr addr, UInt size)
 {
 	char line[4096];
 	int idx = 0;
+	line[0] = 0;
 
 	UInt i;
 	if (!addr || (addr & 0xffff0000) == 0xbeef0000)
