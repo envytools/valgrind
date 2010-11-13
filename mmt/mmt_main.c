@@ -191,6 +191,9 @@ static struct trace_file {
 static int trace_all_files = False;
 
 static int trace_nvidia_ioctls = False;
+static int trace_marks = False;
+static int trace_mark_fd;
+static int trace_mark_cnt = 0;
 static fd_set nvidiactl_fds;
 static fd_set nvidia0_fds;
 
@@ -976,6 +979,7 @@ static IRSB *mmt_instrument(VgCallbackClosure *closure,
 #define TN_OPT "--mmt-trace-nvidia-ioctls"
 #define TO_OPT "--mmt-trace-all-opens"
 #define TA_OPT "--mmt-trace-all-files"
+#define TM_OPT "--mmt-trace-marks"
 
 static Bool mmt_process_cmd_line_option(Char * arg)
 {
@@ -1009,6 +1013,11 @@ static Bool mmt_process_cmd_line_option(Char * arg)
 		trace_all_files = True;
 		return True;
 	}
+	else if (VG_(strcmp)(arg, TM_OPT) == 0)
+	{
+		trace_marks = True;
+		return True;
+	}
 
 	return False;
 }
@@ -1021,6 +1030,7 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TA_OPT "     trace loads and store to memory mapped for all files\n");
 	VG_(printf)("    " TN_OPT " trace ioctls on /dev/nvidiactl\n");
 	VG_(printf)("    " TO_OPT "     trace all 'open' syscalls\n");
+	VG_(printf)("    " TM_OPT "     send mmiotrace marks before and after ioctls\n");
 }
 
 static void mmt_print_debug_usage(void)
@@ -1029,10 +1039,22 @@ static void mmt_print_debug_usage(void)
 
 static void mmt_fini(Int exitcode)
 {
+	if (trace_marks) {
+		VG_(close)(trace_mark_fd);
+	}
 }
 
 static void mmt_post_clo_init(void)
 {
+	if (trace_marks) {
+		SysRes ff;
+		ff = VG_(open)("/sys/kernel/debug/tracing/trace_marker", O_WRONLY, 0777);
+		if (ff._isError) {
+			VG_(message) (Vg_UserMsg, "Cannot open marker file!\n");
+			trace_marks = 0;
+		}
+		trace_mark_fd = ff._val;
+	}
 }
 
 static void dumpmem(char *s, Addr addr, UInt size)
@@ -1073,6 +1095,13 @@ static void pre_ioctl(ThreadId tid, UWord *args, UInt nArgs)
 
 	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
+
+	if (trace_marks) {
+		char buf[50];
+		VG_(snprintf)(buf, 50, "VG-%d-%d-PRE\n", VG_(getpid)(), trace_mark_cnt);
+		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
+		VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
@@ -1280,6 +1309,13 @@ static void post_ioctl(ThreadId tid, UWord *args, UInt nArgs)
 
 	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
+
+	if (trace_marks) {
+		char buf[50];
+		VG_(snprintf)(buf, 50, "VG-%d-%d-POST\n", VG_(getpid)(), trace_mark_cnt++);
+		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
+		VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
