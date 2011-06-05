@@ -3009,6 +3009,585 @@ struct vki_hwtstamp_config {
 #define VKI_UI_SET_SWBIT		_VKI_IOW(VKI_UINPUT_IOCTL_BASE, 109, int)
 #define VKI_UI_SET_PROPBIT		_VKI_IOW(VKI_UINPUT_IOCTL_BASE, 110, int)
 
+// drm
+
+// drm_mode.h
+#define VKI_DRM_DISPLAY_MODE_LEN	32
+#define VKI_DRM_PROP_NAME_LEN	32
+
+struct vki_drm_mode_modeinfo {
+	__vki_u32 clock;
+	__vki_u16 hdisplay, hsync_start, hsync_end, htotal, hskew;
+	__vki_u16 vdisplay, vsync_start, vsync_end, vtotal, vscan;
+
+	__vki_u32 vrefresh;
+
+	__vki_u32 flags;
+	__vki_u32 type;
+	char name[VKI_DRM_DISPLAY_MODE_LEN];
+};
+
+struct vki_drm_mode_card_res {
+	__vki_u64 fb_id_ptr;
+	__vki_u64 crtc_id_ptr;
+	__vki_u64 connector_id_ptr;
+	__vki_u64 encoder_id_ptr;
+	__vki_u32 count_fbs;
+	__vki_u32 count_crtcs;
+	__vki_u32 count_connectors;
+	__vki_u32 count_encoders;
+	__vki_u32 min_width, max_width;
+	__vki_u32 min_height, max_height;
+};
+
+struct vki_drm_mode_crtc {
+	__vki_u64 set_connectors_ptr;
+	__vki_u32 count_connectors;
+
+	__vki_u32 crtc_id; /**< Id */
+	__vki_u32 fb_id; /**< Id of framebuffer */
+
+	__vki_u32 x, y; /**< Position on the frameuffer */
+
+	__vki_u32 gamma_size;
+	__vki_u32 mode_valid;
+	struct vki_drm_mode_modeinfo mode;
+};
+
+struct vki_drm_mode_get_encoder {
+	__vki_u32 encoder_id;
+	__vki_u32 encoder_type;
+
+	__vki_u32 crtc_id; /**< Id of crtc */
+
+	__vki_u32 possible_crtcs;
+	__vki_u32 possible_clones;
+};
+
+struct vki_drm_mode_get_connector {
+	__vki_u64 encoders_ptr;
+	__vki_u64 modes_ptr;
+	__vki_u64 props_ptr;
+	__vki_u64 prop_values_ptr;
+
+	__vki_u32 count_modes;
+	__vki_u32 count_props;
+	__vki_u32 count_encoders;
+
+	__vki_u32 encoder_id; /**< Current Encoder */
+	__vki_u32 connector_id; /**< Id */
+	__vki_u32 connector_type;
+	__vki_u32 connector_type_id;
+
+	__vki_u32 connection;
+	__vki_u32 mm_width, mm_height; /**< HxW in millimeters */
+	__vki_u32 subpixel;
+};
+
+struct vki_drm_mode_property_enum {
+	__vki_u64 value;
+	char name[VKI_DRM_PROP_NAME_LEN];
+};
+
+struct vki_drm_mode_get_property {
+	__vki_u64 values_ptr; /* values and blob lengths */
+	__vki_u64 enum_blob_ptr; /* enum and blob id ptrs */
+
+	__vki_u32 prop_id;
+	__vki_u32 flags;
+	char name[VKI_DRM_PROP_NAME_LEN];
+
+	__vki_u32 count_values;
+	__vki_u32 count_enum_blobs;
+};
+
+struct vki_drm_mode_connector_set_property {
+	__vki_u64 value;
+	__vki_u32 prop_id;
+	__vki_u32 connector_id;
+};
+
+struct vki_drm_mode_get_blob {
+	__vki_u32 blob_id;
+	__vki_u32 length;
+	__vki_u64 data;
+};
+
+struct vki_drm_mode_fb_cmd {
+	__vki_u32 fb_id;
+	__vki_u32 width, height;
+	__vki_u32 pitch;
+	__vki_u32 bpp;
+	__vki_u32 depth;
+	/* driver specific handle */
+	__vki_u32 handle;
+};
+
+struct vki_drm_mode_fb_dirty_cmd {
+	__vki_u32 fb_id;
+	__vki_u32 flags;
+	__vki_u32 color;
+	__vki_u32 num_clips;
+	__vki_u64 clips_ptr;
+};
+
+struct vki_drm_mode_mode_cmd {
+	__vki_u32 connector_id;
+	struct vki_drm_mode_modeinfo mode;
+};
+
+#define VKI_DRM_MODE_CURSOR_BO	(1<<0)
+#define VKI_DRM_MODE_CURSOR_MOVE	(1<<1)
+
+struct vki_drm_mode_cursor {
+	__vki_u32 flags;
+	__vki_u32 crtc_id;
+	__vki_s32 x;
+	__vki_s32 y;
+	__vki_u32 width;
+	__vki_u32 height;
+	/* driver specific handle */
+	__vki_u32 handle;
+};
+
+struct vki_drm_mode_crtc_lut {
+	__vki_u32 crtc_id;
+	__vki_u32 gamma_size;
+
+	/* pointers to arrays */
+	__vki_u64 red;
+	__vki_u64 green;
+	__vki_u64 blue;
+};
+
+struct vki_drm_mode_crtc_page_flip {
+	__vki_u32 crtc_id;
+	__vki_u32 fb_id;
+	__vki_u32 flags;
+	__vki_u32 reserved;
+	__vki_u64 user_data;
+};
+
+/* create a dumb scanout buffer */
+struct vki_drm_mode_create_dumb {
+	__vki_u32 height;
+	__vki_u32 width;
+	__vki_u32 bpp;
+	__vki_u32 flags;
+        /* handle, pitch, size will be returned */
+	__vki_u32 handle;
+	__vki_u32 pitch;
+	__vki_u64 size;
+};
+
+/* set up for mmap of a dumb scanout buffer */
+struct vki_drm_mode_map_dumb {
+	/** Handle for the object being mapped. */
+	__vki_u32 handle;
+	__vki_u32 pad;
+	/**
+	 * Fake offset to use for subsequent mmap call
+	 *
+	 * This is a fixed-size type for 32/64 compatibility.
+	 */
+	__vki_u64 offset;
+};
+
+struct vki_drm_mode_destroy_dumb {
+	__vki_u32 handle;
+};
+
+
+// drm.h
+
+typedef unsigned int vki_drm_drawable_t;
+typedef unsigned int vki_drm_magic_t;
+
+struct vki_drm_clip_rect {
+	unsigned short x1;
+	unsigned short y1;
+	unsigned short x2;
+	unsigned short y2;
+};
+
+struct vki_drm_version {
+	int version_major;	  /**< Major version */
+	int version_minor;	  /**< Minor version */
+	int version_patchlevel;	  /**< Patch level */
+	vki_size_t name_len;	  /**< Length of name buffer */
+	char *name;	  /**< Name of driver */
+	vki_size_t date_len;	  /**< Length of date buffer */
+	char *date;	  /**< User-space buffer to hold date */
+	vki_size_t desc_len;	  /**< Length of desc buffer */
+	char *desc;	  /**< User-space buffer to hold desc */
+};
+
+struct vki_drm_unique {
+	vki_size_t unique_len;	  /**< Length of unique */
+	char *unique;	  /**< Unique name for driver instantiation */
+};
+
+struct vki_drm_update_draw {
+	vki_drm_drawable_t handle;
+	unsigned int type;
+	unsigned int num;
+	unsigned long long data;
+};
+
+struct vki_drm_auth {
+	vki_drm_magic_t magic;
+};
+
+struct vki_drm_irq_busid {
+	int irq;	/**< IRQ number */
+	int busnum;	/**< bus number */
+	int devnum;	/**< device number */
+	int funcnum;	/**< function number */
+};
+
+/** DRM_IOCTL_GEM_CLOSE ioctl argument type */
+struct vki_drm_gem_close {
+	/** Handle of the object to be closed. */
+	__vki_u32 handle;
+	__vki_u32 pad;
+};
+
+/** DRM_IOCTL_GEM_FLINK ioctl argument type */
+struct vki_drm_gem_flink {
+	/** Handle for the object being named */
+	__vki_u32 handle;
+
+	/** Returned global name */
+	__vki_u32 name;
+};
+
+/** DRM_IOCTL_GEM_OPEN ioctl argument type */
+struct vki_drm_gem_open {
+	/** Name of object being opened */
+	__vki_u32 name;
+
+	/** Returned handle for the object */
+	__vki_u32 handle;
+
+	/** Returned size of the object */
+	__vki_u64 size;
+};
+
+// xf86drm.h
+#define VKI_DRM_IOCTL_NR(n)		_VKI_IOC_NR(n)
+#define VKI_DRM_IOC_VOID		_VKI_IOC_NONE
+#define VKI_DRM_IOC_READ		_VKI_IOC_READ
+#define VKI_DRM_IOC_WRITE		_VKI_IOC_WRITE
+#define VKI_DRM_IOC_READWRITE	_VKI_IOC_READ|_IOC_WRITE
+#define VKI_DRM_IOC(dir, group, nr, size) _VKI_IOC(dir, group, nr, size)
+
+enum vki_drm_vblank_seq_type {
+	VKI_DRM_VBLANK_ABSOLUTE = 0x0,	/**< Wait for specific vblank sequence number */
+	VKI_DRM_VBLANK_RELATIVE = 0x1,	/**< Wait for given number of vblanks */
+	VKI_DRM_VBLANK_EVENT = 0x4000000,   /**< Send event instead of blocking */
+	VKI_DRM_VBLANK_FLIP = 0x8000000,   /**< Scheduled buffer swap should flip */
+	VKI_DRM_VBLANK_NEXTONMISS = 0x10000000,	/**< If missed, wait for next vblank */
+	VKI_DRM_VBLANK_SECONDARY = 0x20000000,	/**< Secondary display controller */
+	VKI_DRM_VBLANK_SIGNAL = 0x40000000	/**< Send signal instead of blocking, unsupported */
+};
+
+struct vki_drm_wait_vblank_request {
+	enum vki_drm_vblank_seq_type type;
+	unsigned int sequence;
+	unsigned long signal;
+};
+
+struct vki_drm_wait_vblank_reply {
+	enum vki_drm_vblank_seq_type type;
+	unsigned int sequence;
+	long tval_sec;
+	long tval_usec;
+};
+
+/**
+ * DRM_IOCTL_WAIT_VBLANK ioctl argument type.
+ *
+ * \sa drmWaitVBlank().
+ */
+union vki_drm_wait_vblank {
+	struct vki_drm_wait_vblank_request request;
+	struct vki_drm_wait_vblank_reply reply;
+};
+
+//drm.h
+typedef unsigned int vki_drm_context_t;
+enum vki_drm_ctx_flags {
+	VKI_DRM_CONTEXT_PRESERVED = 0x01,
+	VKI_DRM_CONTEXT_2DONLY = 0x02
+};
+struct vki_drm_ctx {
+	vki_drm_context_t handle;
+	enum vki_drm_ctx_flags flags;
+};
+
+struct vki_drm_ctx_res {
+	int count;
+	struct vki_drm_ctx *contexts;
+};
+
+/* because of bug in libdrm, some of the ioctls were passed as int, so when
+ * they were casted to ulong most significant bit was extended to higher word;
+ * kernel drm sees only lower part, so nobody noticed */
+#if VG_WORDSIZE == 8
+#define VKI_DRM_IOCTL_DOUBLE(X) case (unsigned long)(int)(X): case X
+#else
+#define VKI_DRM_IOCTL_DOUBLE(X) case X
+#endif
+
+#define VKI_DRM_IOCTL_BASE			'd'
+#define VKI_DRM_IO(nr)				_VKI_IO(VKI_DRM_IOCTL_BASE,nr)
+#define VKI_DRM_IOR(nr,type)		_VKI_IOR(VKI_DRM_IOCTL_BASE,nr,type)
+#define VKI_DRM_IOW(nr,type)		_VKI_IOW(VKI_DRM_IOCTL_BASE,nr,type)
+#define VKI_DRM_IOWR(nr,type)		_VKI_IOWR(VKI_DRM_IOCTL_BASE,nr,type)
+
+#define VKI_DRM_IOCTL_VERSION		VKI_DRM_IOWR(0x00, struct vki_drm_version)
+#define VKI_DRM_IOCTL_GET_UNIQUE	VKI_DRM_IOWR(0x01, struct vki_drm_unique)
+#define VKI_DRM_IOCTL_GET_MAGIC		VKI_DRM_IOR( 0x02, struct vki_drm_auth)
+#define VKI_DRM_IOCTL_IRQ_BUSID		VKI_DRM_IOWR(0x03, struct vki_drm_irq_busid)
+//#define VKI_DRM_IOCTL_GET_MAP		VKI_DRM_IOWR(0x04, struct vki_drm_map)
+//#define VKI_DRM_IOCTL_GET_CLIENT	VKI_DRM_IOWR(0x05, struct vki_drm_client)
+//#define VKI_DRM_IOCTL_GET_STATS	VKI_DRM_IOR( 0x06, struct vki_drm_stats)
+//#define VKI_DRM_IOCTL_SET_VERSION	VKI_DRM_IOWR(0x07, struct vki_drm_set_version)
+//#define VKI_DRM_IOCTL_MODESET_CTL	VKI_DRM_IOW(0x08, struct vki_drm_modeset_ctl)
+#define VKI_DRM_IOCTL_GEM_CLOSE		VKI_DRM_IOW (0x09, struct vki_drm_gem_close)
+#define VKI_DRM_IOCTL_GEM_FLINK		VKI_DRM_IOWR(0x0a, struct vki_drm_gem_flink)
+#define VKI_DRM_IOCTL_GEM_OPEN		VKI_DRM_IOWR(0x0b, struct vki_drm_gem_open)
+//#define VKI_DRM_IOCTL_GET_CAP		VKI_DRM_IOWR(0x0c, struct vki_drm_get_cap)
+
+//#define VKI_DRM_IOCTL_SET_UNIQUE	VKI_DRM_IOW( 0x10, struct vki_drm_unique)
+//#define VKI_DRM_IOCTL_AUTH_MAGIC	VKI_DRM_IOW( 0x11, struct vki_drm_auth)
+//#define VKI_DRM_IOCTL_BLOCK		VKI_DRM_IOWR(0x12, struct vki_drm_block)
+//#define VKI_DRM_IOCTL_UNBLOCK		VKI_DRM_IOWR(0x13, struct vki_drm_block)
+//#define VKI_DRM_IOCTL_CONTROL		VKI_DRM_IOW( 0x14, struct vki_drm_control)
+//#define VKI_DRM_IOCTL_ADD_MAP		VKI_DRM_IOWR(0x15, struct vki_drm_map)
+//#define VKI_DRM_IOCTL_ADD_BUFS	VKI_DRM_IOWR(0x16, struct vki_drm_buf_desc)
+//#define VKI_DRM_IOCTL_MARK_BUFS	VKI_DRM_IOW( 0x17, struct vki_drm_buf_desc)
+//#define VKI_DRM_IOCTL_INFO_BUFS	VKI_DRM_IOWR(0x18, struct vki_drm_buf_info)
+//#define VKI_DRM_IOCTL_MAP_BUFS	VKI_DRM_IOWR(0x19, struct vki_drm_buf_map)
+//#define VKI_DRM_IOCTL_FREE_BUFS	VKI_DRM_IOW( 0x1a, struct vki_drm_buf_free)
+
+//#define VKI_DRM_IOCTL_RM_MAP		VKI_DRM_IOW( 0x1b, struct vki_drm_map)
+
+//#define VKI_DRM_IOCTL_SET_SAREA_CTX	VKI_DRM_IOW( 0x1c, struct vki_drm_ctx_priv_map)
+//#define VKI_DRM_IOCTL_GET_SAREA_CTX 	VKI_DRM_IOWR(0x1d, struct vki_drm_ctx_priv_map)
+
+#define VKI_DRM_IOCTL_SET_MASTER	VKI_DRM_IO(0x1e)
+#define VKI_DRM_IOCTL_DROP_MASTER	VKI_DRM_IO(0x1f)
+
+#define VKI_DRM_IOCTL_ADD_CTX		VKI_DRM_IOWR(0x20, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_RM_CTX		VKI_DRM_IOWR(0x21, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_MOD_CTX		VKI_DRM_IOW( 0x22, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_GET_CTX		VKI_DRM_IOWR(0x23, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_SWITCH_CTX	VKI_DRM_IOW( 0x24, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_NEW_CTX		VKI_DRM_IOW( 0x25, struct vki_drm_ctx)
+#define VKI_DRM_IOCTL_RES_CTX		VKI_DRM_IOWR(0x26, struct vki_drm_ctx_res)
+//#define VKI_DRM_IOCTL_ADD_DRAW	VKI_DRM_IOWR(0x27, struct vki_drm_draw)
+//#define VKI_DRM_IOCTL_RM_DRAW		VKI_DRM_IOWR(0x28, struct vki_drm_draw)
+//#define VKI_DRM_IOCTL_DMA			VKI_DRM_IOWR(0x29, struct vki_drm_dma)
+//#define VKI_DRM_IOCTL_LOCK		VKI_DRM_IOW( 0x2a, struct vki_drm_lock)
+//#define VKI_DRM_IOCTL_UNLOCK		VKI_DRM_IOW( 0x2b, struct vki_drm_lock)
+//#define VKI_DRM_IOCTL_FINISH		VKI_DRM_IOW( 0x2c, struct vki_drm_lock)
+
+//#define VKI_DRM_IOCTL_AGP_ACQUIRE	VKI_DRM_IO(  0x30)
+//#define VKI_DRM_IOCTL_AGP_RELEASE	VKI_DRM_IO(  0x31)
+//#define VKI_DRM_IOCTL_AGP_ENABLE	VKI_DRM_IOW( 0x32, struct vki_drm_agp_mode)
+//#define VKI_DRM_IOCTL_AGP_INFO	VKI_DRM_IOR( 0x33, struct vki_drm_agp_info)
+//#define VKI_DRM_IOCTL_AGP_ALLOC	VKI_DRM_IOWR(0x34, struct vki_drm_agp_buffer)
+//#define VKI_DRM_IOCTL_AGP_FREE	VKI_DRM_IOW( 0x35, struct vki_drm_agp_buffer)
+//#define VKI_DRM_IOCTL_AGP_BIND	VKI_DRM_IOW( 0x36, struct vki_drm_agp_binding)
+//#define VKI_DRM_IOCTL_AGP_UNBIND	VKI_DRM_IOW( 0x37, struct vki_drm_agp_binding)
+
+//#define VKI_DRM_IOCTL_SG_ALLOC	VKI_DRM_IOWR(0x38, struct vki_drm_scatter_gather)
+//#define VKI_DRM_IOCTL_SG_FREE		VKI_DRM_IOW( 0x39, struct vki_drm_scatter_gather)
+
+#define VKI_DRM_IOCTL_WAIT_VBLANK	VKI_DRM_IOWR(0x3a, union vki_drm_wait_vblank)
+
+#define VKI_DRM_IOCTL_UPDATE_DRAW	VKI_DRM_IOW(0x3f, struct vki_drm_update_draw)
+
+#define VKI_DRM_IOCTL_MODE_GETRESOURCES	VKI_DRM_IOWR(0xA0, struct vki_drm_mode_card_res)
+#define VKI_DRM_IOCTL_MODE_GETCRTC		VKI_DRM_IOWR(0xA1, struct vki_drm_mode_crtc)
+#define VKI_DRM_IOCTL_MODE_SETCRTC		VKI_DRM_IOWR(0xA2, struct vki_drm_mode_crtc)
+#define VKI_DRM_IOCTL_MODE_CURSOR		VKI_DRM_IOWR(0xA3, struct vki_drm_mode_cursor)
+#define VKI_DRM_IOCTL_MODE_GETGAMMA		VKI_DRM_IOWR(0xA4, struct vki_drm_mode_crtc_lut)
+#define VKI_DRM_IOCTL_MODE_SETGAMMA		VKI_DRM_IOWR(0xA5, struct vki_drm_mode_crtc_lut)
+#define VKI_DRM_IOCTL_MODE_GETENCODER	VKI_DRM_IOWR(0xA6, struct vki_drm_mode_get_encoder)
+#define VKI_DRM_IOCTL_MODE_GETCONNECTOR	VKI_DRM_IOWR(0xA7, struct vki_drm_mode_get_connector)
+#define VKI_DRM_IOCTL_MODE_ATTACHMODE	VKI_DRM_IOWR(0xA8, struct vki_drm_mode_mode_cmd)
+#define VKI_DRM_IOCTL_MODE_DETACHMODE	VKI_DRM_IOWR(0xA9, struct vki_drm_mode_mode_cmd)
+
+#define VKI_DRM_IOCTL_MODE_GETPROPERTY	VKI_DRM_IOWR(0xAA, struct vki_drm_mode_get_property)
+#define VKI_DRM_IOCTL_MODE_SETPROPERTY	VKI_DRM_IOWR(0xAB, struct vki_drm_mode_connector_set_property)
+#define VKI_DRM_IOCTL_MODE_GETPROPBLOB	VKI_DRM_IOWR(0xAC, struct vki_drm_mode_get_blob)
+#define VKI_DRM_IOCTL_MODE_GETFB		VKI_DRM_IOWR(0xAD, struct vki_drm_mode_fb_cmd)
+#define VKI_DRM_IOCTL_MODE_ADDFB		VKI_DRM_IOWR(0xAE, struct vki_drm_mode_fb_cmd)
+#define VKI_DRM_IOCTL_MODE_RMFB			VKI_DRM_IOWR(0xAF, unsigned int)
+#define VKI_DRM_IOCTL_MODE_PAGE_FLIP	VKI_DRM_IOWR(0xB0, struct vki_drm_mode_crtc_page_flip)
+#define VKI_DRM_IOCTL_MODE_DIRTYFB		VKI_DRM_IOWR(0xB1, struct vki_drm_mode_fb_dirty_cmd)
+
+#define VKI_DRM_IOCTL_MODE_CREATE_DUMB	VKI_DRM_IOWR(0xB2, struct vki_drm_mode_create_dumb)
+#define VKI_DRM_IOCTL_MODE_MAP_DUMB		VKI_DRM_IOWR(0xB3, struct vki_drm_mode_map_dumb)
+#define VKI_DRM_IOCTL_MODE_DESTROY_DUMB	VKI_DRM_IOWR(0xB4, struct vki_drm_mode_destroy_dumb)
+
+#define VKI_DRM_COMMAND_BASE                0x40
+//#define VKI_DRM_COMMAND_END			0xA0
+
+// xf86drm.c: drmCommandWriteRead
+#define VKI_DRM_COMMAND(dir, index, size) \
+	VKI_DRM_IOC(dir, VKI_DRM_IOCTL_BASE, VKI_DRM_COMMAND_BASE + index, size)
+
+#define VKI_DRM_COMMAND_RW(index, size) \
+	VKI_DRM_COMMAND(VKI_DRM_IOC_READ | VKI_DRM_IOC_WRITE, index, size)
+
+#define VKI_DRM_COMMAND_W(index, size) \
+	VKI_DRM_COMMAND(VKI_DRM_IOC_WRITE, index, size)
+
+#define VKI_DRM_COMMAND_R(index, size) \
+	VKI_DRM_COMMAND(VKI_DRM_IOC_READ, index, size)
+
+// nouveau_drm.h
+#define VKI_DRM_NOUVEAU_GETPARAM           0x00
+#define VKI_DRM_NOUVEAU_SETPARAM           0x01
+#define VKI_DRM_NOUVEAU_CHANNEL_ALLOC      0x02
+#define VKI_DRM_NOUVEAU_CHANNEL_FREE       0x03
+#define VKI_DRM_NOUVEAU_GROBJ_ALLOC        0x04
+#define VKI_DRM_NOUVEAU_NOTIFIEROBJ_ALLOC  0x05
+#define VKI_DRM_NOUVEAU_GPUOBJ_FREE        0x06
+#define VKI_DRM_NOUVEAU_GEM_NEW            0x40
+#define VKI_DRM_NOUVEAU_GEM_PUSHBUF        0x41
+#define VKI_DRM_NOUVEAU_GEM_CPU_PREP       0x42
+#define VKI_DRM_NOUVEAU_GEM_CPU_FINI       0x43
+#define VKI_DRM_NOUVEAU_GEM_INFO           0x44
+
+struct vki_drm_nouveau_channel_alloc {
+	__vki_u32     fb_ctxdma_handle;
+	__vki_u32     tt_ctxdma_handle;
+
+	int          channel;
+	__vki_u32     pushbuf_domains;
+
+	/* Notifier memory */
+	__vki_u32     notifier_handle;
+
+	/* DRM-enforced subchannel assignments */
+	struct {
+		__vki_u32 handle;
+		__vki_u32 grclass;
+	} subchan[8];
+	__vki_u32 nr_subchan;
+};
+
+struct vki_drm_nouveau_channel_free {
+	int channel;
+};
+
+struct vki_drm_nouveau_grobj_alloc {
+	int      channel;
+	__vki_u32 handle;
+	int      class;
+};
+
+struct vki_drm_nouveau_notifierobj_alloc {
+	__vki_u32 channel;
+	__vki_u32 handle;
+	__vki_u32 size;
+	__vki_u32 offset;
+};
+
+struct vki_drm_nouveau_gpuobj_free {
+	int      channel;
+	__vki_u32 handle;
+};
+
+struct vki_drm_nouveau_getparam {
+	__vki_u64 param;
+	__vki_u64 value;
+};
+
+struct vki_drm_nouveau_setparam {
+	__vki_u64 param;
+	__vki_u64 value;
+};
+
+struct vki_drm_nouveau_gem_info {
+	__vki_u32 handle;
+	__vki_u32 domain;
+	__vki_u64 size;
+	__vki_u64 offset;
+	__vki_u64 map_handle;
+	__vki_u32 tile_mode;
+	__vki_u32 tile_flags;
+};
+
+struct vki_drm_nouveau_gem_new {
+	struct vki_drm_nouveau_gem_info info;
+	__vki_u32 channel_hint;
+	__vki_u32 align;
+};
+
+
+struct vki_drm_nouveau_gem_pushbuf_bo_presumed {
+	__vki_u32 valid;
+	__vki_u32 domain;
+	__vki_u64 offset;
+};
+
+struct vki_drm_nouveau_gem_pushbuf_bo {
+	__vki_u64 user_priv;
+	__vki_u32 handle;
+	__vki_u32 read_domains;
+	__vki_u32 write_domains;
+	__vki_u32 valid_domains;
+	struct vki_drm_nouveau_gem_pushbuf_bo_presumed presumed;
+};
+
+struct vki_drm_nouveau_gem_pushbuf_push {
+	__vki_u32 bo_index;
+	__vki_u32 pad;
+	__vki_u64 offset;
+	__vki_u64 length;
+};
+
+struct vki_drm_nouveau_gem_pushbuf {
+	__vki_u32 channel;
+	__vki_u32 nr_buffers;
+	__vki_u64 buffers;
+	__vki_u32 nr_relocs;
+	__vki_u32 nr_push;
+	__vki_u64 relocs;
+	__vki_u64 push;
+	__vki_u32 suffix0;
+	__vki_u32 suffix1;
+	__vki_u64 vram_available;
+	__vki_u64 gart_available;
+};
+
+struct vki_drm_nouveau_gem_cpu_prep {
+	__vki_u32 handle;
+	__vki_u32 flags;
+};
+
+struct vki_drm_nouveau_gem_cpu_fini {
+	__vki_u32 handle;
+};
+
+#define VKI_DRM_IOCTL_NOUVEAU_GETPARAM			VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_GETPARAM, sizeof(struct vki_drm_nouveau_getparam))
+#define VKI_DRM_IOCTL_NOUVEAU_SETPARAM			VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_SETPARAM, sizeof(struct vki_drm_nouveau_setparam))
+#define VKI_DRM_IOCTL_NOUVEAU_CHANNEL_ALLOC		VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_CHANNEL_ALLOC, sizeof(struct vki_drm_nouveau_channel_alloc))
+#define VKI_DRM_IOCTL_NOUVEAU_CHANNEL_FREE		VKI_DRM_COMMAND_W (VKI_DRM_NOUVEAU_CHANNEL_FREE, sizeof(struct vki_drm_nouveau_channel_free))
+#define VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC		VKI_DRM_COMMAND_W (VKI_DRM_NOUVEAU_GROBJ_ALLOC, sizeof(struct vki_drm_nouveau_grobj_alloc))
+#define VKI_DRM_IOCTL_NOUVEAU_NOTIFIEROBJ_ALLOC	VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_NOTIFIEROBJ_ALLOC, sizeof(struct vki_drm_nouveau_notifierobj_alloc))
+#define VKI_DRM_IOCTL_NOUVEAU_GPUOBJ_FREE		VKI_DRM_COMMAND_W (VKI_DRM_NOUVEAU_GPUOBJ_FREE, sizeof(struct vki_drm_nouveau_gpuobj_free))
+#define VKI_DRM_IOCTL_NOUVEAU_GEM_NEW			VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_GEM_NEW, sizeof(struct vki_drm_nouveau_gem_new))
+#define VKI_DRM_IOCTL_NOUVEAU_GEM_PUSHBUF		VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_GEM_PUSHBUF, sizeof(struct vki_drm_nouveau_gem_pushbuf))
+#define VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_PREP		VKI_DRM_COMMAND_W (VKI_DRM_NOUVEAU_GEM_CPU_PREP, sizeof(struct vki_drm_nouveau_gem_cpu_prep))
+#define VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_FINI		VKI_DRM_COMMAND_W (VKI_DRM_NOUVEAU_GEM_CPU_FINI, sizeof(struct vki_drm_nouveau_gem_cpu_fini))
+#define VKI_DRM_IOCTL_NOUVEAU_GEM_INFO			VKI_DRM_COMMAND_RW(VKI_DRM_NOUVEAU_GEM_INFO, sizeof(struct vki_drm_nouveau_gem_info))
+
 #endif // __VKI_LINUX_H
 
 /*--------------------------------------------------------------------*/

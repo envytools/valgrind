@@ -64,6 +64,7 @@
 #include "priv_syswrap-generic.h"
 #include "priv_syswrap-linux.h"
 
+#define max(a,b) ((a)>(b)?(a):(b))
 
 // Run a thread from beginning to end and return the thread's
 // scheduler-return-code.
@@ -5023,6 +5024,683 @@ PRE(sys_ioctl)
       PRE_MEM_READ( "ioctl(PIO_UNISCRNMAP)", ARG3,
                     VKI_E_TABSZ * sizeof(unsigned short) );
       break;
+   case VKI_DRM_IOCTL_VERSION:
+	   if (ARG3) {
+		   struct vki_drm_version *req = (struct vki_drm_version *)ARG3;
+
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).version_major", req->version_major);
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).version_minor", req->version_minor);
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).version_patchlevel", req->version_patchlevel);
+
+		   PRE_FIELD_READ("ioctl(DRM_VERSION).name_len", req->name_len);
+		   PRE_FIELD_READ("ioctl(DRM_VERSION).date_len", req->date_len);
+		   PRE_FIELD_READ("ioctl(DRM_VERSION).desc_len", req->desc_len);
+
+		   PRE_MEM_WRITE("ioctl(DRM_VERSION).name[]", (Addr)req->name, req->name_len);
+		   PRE_MEM_WRITE("ioctl(DRM_VERSION).date[]", (Addr)req->date, req->date_len);
+		   PRE_MEM_WRITE("ioctl(DRM_VERSION).desc[]", (Addr)req->desc, req->desc_len);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).name_len", req->name_len);
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).date_len", req->date_len);
+		   PRE_FIELD_WRITE("ioctl(DRM_VERSION).desc_len", req->desc_len);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GET_UNIQUE:
+	   if (ARG3) {
+		   struct vki_drm_unique *req = (struct vki_drm_unique *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_UNIQUE).unique_len", req->unique_len);
+		   if (req->unique_len) {
+			   PRE_FIELD_READ("ioctl(DRM_UNIQUE).unique", req->unique);
+			   PRE_MEM_WRITE("ioctl(DRM_UNIQUE).unique[]", (Addr)req->unique, req->unique_len);
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_UNIQUE).unique_len", req->unique_len);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GET_MAGIC:
+	   if (ARG3) {
+		   struct vki_drm_auth *req = (struct vki_drm_auth *)ARG3;
+
+		   PRE_FIELD_WRITE("ioctl(DRM_GET_MAGIC).magic", req->magic);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_IRQ_BUSID:
+	   if (ARG3) {
+		   struct vki_drm_irq_busid *req = (struct vki_drm_irq_busid *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_IRQ_BUSID).busnum", req->busnum);
+		   PRE_FIELD_READ("ioctl(DRM_IRQ_BUSID).devnum", req->devnum);
+		   PRE_FIELD_READ("ioctl(DRM_IRQ_BUSID).funcnum", req->funcnum);
+		   PRE_FIELD_WRITE("ioctl(DRM_IRQ_BUSID).irq", req->irq);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GEM_CLOSE:
+	   if (ARG3) {
+		   struct vki_drm_gem_close *req = (struct vki_drm_gem_close *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_GEM_CLOSE).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GEM_FLINK:
+	   if (ARG3) {
+		   struct vki_drm_gem_flink *req = (struct vki_drm_gem_flink *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_GEM_FLINK).handle", req->handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_GEM_FLINK).name", req->name);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GEM_OPEN:
+	   if (ARG3) {
+		   struct vki_drm_gem_open *req = (struct vki_drm_gem_open *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_GEM_OPEN).name", req->name);
+		   PRE_FIELD_WRITE("ioctl(DRM_GEM_OPEN).handle", req->handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_GEM_OPEN).size", req->size);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_SET_MASTER:
+	   break;
+   case VKI_DRM_IOCTL_DROP_MASTER:
+	   break;
+   case VKI_DRM_IOCTL_ADD_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   PRE_FIELD_WRITE("ioctl(DRM_ADD_CTX).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_RM_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_RM_CTX).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MOD_CTX:
+	   break;
+   case VKI_DRM_IOCTL_GET_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   PRE_FIELD_WRITE("ioctl(DRM_GET_CTX).flags", req->flags);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_SWITCH_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_SWITCH_CTX).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NEW_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NEW_CTX).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_RES_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx_res *req = (struct vki_drm_ctx_res *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_RES_CTX).count", req->count);
+		   if (req->count) {
+			   PRE_FIELD_READ("ioctl(DRM_RES_CTX).contexts", req->contexts);
+
+			   PRE_MEM_WRITE("ioctl(DRM_RES_CTX).contexts[]", (Addr)req->contexts,
+					   req->count * sizeof (req->contexts[0]));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_RES_CTX).count", req->count);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_WAIT_VBLANK:
+	   if (ARG3) {
+		   union vki_drm_wait_vblank *req = (union vki_drm_wait_vblank *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_WAIT_VBLANK).request.type", req->request.type);
+		   PRE_FIELD_READ("ioctl(DRM_WAIT_VBLANK).request.sequence", req->request.sequence);
+
+		   if (req->request.type & VKI_DRM_VBLANK_EVENT) {
+			   PRE_FIELD_READ("ioctl(DRM_WAIT_VBLANK).request.signal", req->request.signal);
+		   } else {
+			   PRE_FIELD_WRITE("ioctl(DRM_WAIT_VBLANK).reply.tval_sec", req->reply.tval_sec);
+			   PRE_FIELD_WRITE("ioctl(DRM_WAIT_VBLANK).reply.tval_usec", req->reply.tval_usec);
+		   }
+
+		   PRE_FIELD_WRITE("ioctl(DRM_WAIT_VBLANK).reply.sequence", req->reply.sequence);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_UPDATE_DRAW:
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETRESOURCES:
+	   if (ARG3) {
+		   struct vki_drm_mode_card_res *req = (struct vki_drm_mode_card_res *)ARG3;
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).min_width", req->min_width);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).max_width", req->max_width);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).min_height", req->min_height);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).max_height", req->max_height);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).count_fbs", req->count_fbs);
+		   if (req->count_fbs) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).fb_id_ptr", req->fb_id_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETRESOURCES).fb_id_ptr[]", (Addr)req->fb_id_ptr,
+					   req->count_fbs * sizeof (__vki_u32));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).count_fbs", req->count_fbs);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).count_crtcs", req->count_crtcs);
+		   if (req->count_crtcs) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).crtc_id_ptr", req->crtc_id_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETRESOURCES).crtc_id_ptr[]", (Addr)req->crtc_id_ptr,
+					   req->count_crtcs * sizeof (__vki_u32));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).count_crtcs", req->count_crtcs);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).count_encoders", req->count_encoders);
+		   if (req->count_encoders) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).encoder_id_ptr", req->encoder_id_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETRESOURCES).encoder_id_ptr[]", (Addr)req->encoder_id_ptr,
+					   req->count_encoders * sizeof (__vki_u32));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).count_encoders", req->count_encoders);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).count_connectors", req->count_connectors);
+		   if (req->count_connectors) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETRESOURCES).connector_id_ptr", req->connector_id_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETRESOURCES).connector_id_ptr[]", (Addr)req->connector_id_ptr,
+					   req->count_connectors * sizeof (__vki_u32));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETRESOURCES).count_connectors", req->count_connectors);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_GETCRTC):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc *req = (struct vki_drm_mode_crtc *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETCRTC).crtc_id", req->crtc_id);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).x", req->x);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).y", req->y);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).gamma_size", req->gamma_size);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).fb_id", req->fb_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode_valid", req->mode_valid);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.clock", req->mode.clock);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.hdisplay", req->mode.hdisplay);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.hsync_start", req->mode.hsync_start);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.hsync_end", req->mode.hsync_end);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.htotal", req->mode.htotal);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.hskew", req->mode.hskew);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vdisplay", req->mode.vdisplay);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vsync_start", req->mode.vsync_start);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vsync_end", req->mode.vsync_end);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vtotal", req->mode.vtotal);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vscan", req->mode.vscan);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.vrefresh", req->mode.vrefresh);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.flags", req->mode.flags);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.type", req->mode.type);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCRTC).mode.name", req->mode.name);
+
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETCRTC):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc *req = (struct vki_drm_mode_crtc *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).crtc_id", req->crtc_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode_valid", req->mode_valid);
+
+		   if (req->mode_valid) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).fb_id", req->fb_id);
+
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.clock", req->mode.clock);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.hdisplay", req->mode.hdisplay);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.hsync_start", req->mode.hsync_start);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.hsync_end", req->mode.hsync_end);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.htotal", req->mode.htotal);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.hskew", req->mode.hskew);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vdisplay", req->mode.vdisplay);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vsync_start", req->mode.vsync_start);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vsync_end", req->mode.vsync_end);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vtotal", req->mode.vtotal);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vscan", req->mode.vscan);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.vrefresh", req->mode.vrefresh);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.flags", req->mode.flags);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.type", req->mode.type);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).mode.name", req->mode.name);
+
+		   }
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).count_connectors", req->count_connectors);
+		   if (req->count_connectors > 0) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).set_connectors_ptr", req->set_connectors_ptr);
+			   PRE_MEM_READ("ioctl(DRM_MODE_SETCRTC).set_connectors_ptr[]",
+					   (Addr)req->set_connectors_ptr, req->count_connectors * sizeof(__vki_u32));
+		   }
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).x", req->x);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETCRTC).y", req->y);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_CURSOR):
+	   if (ARG3) {
+		   struct vki_drm_mode_cursor *req = (struct vki_drm_mode_cursor *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).flags", req->flags);
+		   if (req->flags)
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).crtc_id", req->crtc_id);
+
+		   if (req->flags & VKI_DRM_MODE_CURSOR_BO) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).handle", req->handle);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).width", req->width);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).height", req->height);
+		   }
+
+		   if (req->flags & VKI_DRM_MODE_CURSOR_MOVE) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).x", req->x);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_CURSOR).y", req->y);
+		   }
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_GETGAMMA):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc_lut *req = (struct vki_drm_mode_crtc_lut *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETGAMMA).crtc_id", req->crtc_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETGAMMA).gamma_size", req->gamma_size);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETGAMMA).red", req->red);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETGAMMA).green", req->green);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETGAMMA).blue", req->blue);
+
+		   PRE_MEM_WRITE("ioctl(DRM_MODE_GETGAMMA).red[]", (Addr)req->red, req->gamma_size * sizeof(__vki_u16));
+		   PRE_MEM_WRITE("ioctl(DRM_MODE_GETGAMMA).green[]", (Addr)req->green, req->gamma_size * sizeof(__vki_u16));
+		   PRE_MEM_WRITE("ioctl(DRM_MODE_GETGAMMA).blue[]", (Addr)req->blue, req->gamma_size * sizeof(__vki_u16));
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETGAMMA):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc_lut *req = (struct vki_drm_mode_crtc_lut *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETGAMMA).crtc_id", req->crtc_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETGAMMA).gamma_size", req->gamma_size);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETGAMMA).red", req->red);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETGAMMA).green", req->green);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETGAMMA).blue", req->blue);
+
+		   PRE_MEM_READ("ioctl(DRM_MODE_SETGAMMA).red[]", (Addr)req->red, req->gamma_size * sizeof(__vki_u16));
+		   PRE_MEM_READ("ioctl(DRM_MODE_SETGAMMA).green[]", (Addr)req->green, req->gamma_size * sizeof(__vki_u16));
+		   PRE_MEM_READ("ioctl(DRM_MODE_SETGAMMA).blue[]", (Addr)req->blue, req->gamma_size * sizeof(__vki_u16));
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETENCODER:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_encoder *req = (struct vki_drm_mode_get_encoder *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETENCODER).encoder_id", req->encoder_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETENCODER).crtc_id", req->crtc_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETENCODER).encoder_type", req->encoder_type);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETENCODER).encoder_id", req->encoder_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETENCODER).possible_clones", req->possible_clones);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETENCODER).possible_crtcs", req->possible_crtcs);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETCONNECTOR:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_connector *req = (struct vki_drm_mode_get_connector *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).connector_id", req->connector_id);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).connector_id", req->connector_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).connector_type", req->connector_type);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).connector_type_id", req->connector_type_id);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).mm_width", req->mm_width);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).mm_height", req->mm_height);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).subpixel", req->subpixel);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).connection", req->connection);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).encoder_id", req->encoder_id);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).count_modes", req->count_modes);
+		   if (req->count_modes > 0) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).modes_ptr", req->modes_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETCONNECTOR).modes_ptr[]", (Addr)req->modes_ptr,
+					   req->count_modes * sizeof(struct vki_drm_mode_modeinfo));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).count_modes", req->count_modes);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).count_props", req->count_props);
+		   if (req->count_props > 0) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).props_ptr", req->props_ptr);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).prop_values_ptr", req->prop_values_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETCONNECTOR).props_ptr[]", (Addr)req->props_ptr,
+					   req->count_props * sizeof(__vki_u32));
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETCONNECTOR).prop_values_ptr[]", (Addr)req->prop_values_ptr,
+					   req->count_props * sizeof(__vki_u64));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).count_props", req->count_props);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).count_encoders", req->count_encoders);
+		   if (req->count_encoders > 0) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETCONNECTOR).encoders_ptr", req->encoders_ptr);
+			   PRE_MEM_WRITE("ioctl(DRM_MODE_GETCONNECTOR).encoders_ptr[]", (Addr)req->encoders_ptr,
+					   req->count_encoders * sizeof(__vki_u32));
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETCONNECTOR).count_encoders", req->count_encoders);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_ATTACHMODE):
+	   if (ARG3) {
+		   struct vki_drm_mode_mode_cmd *req = (struct vki_drm_mode_mode_cmd *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).connector_id", req->connector_id);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.clock", req->mode.clock);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.hdisplay", req->mode.hdisplay);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.hsync_start", req->mode.hsync_start);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.hsync_end", req->mode.hsync_end);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.htotal", req->mode.htotal);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.hskew", req->mode.hskew);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vdisplay", req->mode.vdisplay);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vsync_start", req->mode.vsync_start);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vsync_end", req->mode.vsync_end);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vtotal", req->mode.vtotal);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vscan", req->mode.vscan);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.vrefresh", req->mode.vrefresh);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.flags", req->mode.flags);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.type", req->mode.type);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ATTACHMODE).mode.name", req->mode.name);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_DETACHMODE):
+	   if (ARG3) {
+		   struct vki_drm_mode_mode_cmd *req = (struct vki_drm_mode_mode_cmd *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).connector_id", req->connector_id);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.clock", req->mode.clock);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.hdisplay", req->mode.hdisplay);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.hsync_start", req->mode.hsync_start);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.hsync_end", req->mode.hsync_end);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.htotal", req->mode.htotal);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.hskew", req->mode.hskew);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vdisplay", req->mode.vdisplay);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vsync_start", req->mode.vsync_start);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vsync_end", req->mode.vsync_end);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vtotal", req->mode.vtotal);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vscan", req->mode.vscan);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.vrefresh", req->mode.vrefresh);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.flags", req->mode.flags);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.type", req->mode.type);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DETACHMODE).mode.name", req->mode.name);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETPROPERTY:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_property *req = (struct vki_drm_mode_get_property *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).prop_id", req->prop_id);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETPROPERTY).name", req->name);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETPROPERTY).flags", req->flags);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).count_values", req->count_values);
+		   // TODO: figure out how many bytes kernel is going to write, based on type of property
+		   if (req->count_values)
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).values_ptr", req->values_ptr);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETPROPERTY).count_values", req->count_values);
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).count_enum_blobs", req->count_enum_blobs);
+		   // TODO: as above
+		   if (req->count_enum_blobs) {
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).enum_blob_ptr", req->enum_blob_ptr);
+			   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPERTY).values_ptr", req->values_ptr);
+		   }
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETPROPERTY).count_enum_blobs", req->count_enum_blobs);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETPROPERTY):
+	   if (ARG3) {
+		   struct vki_drm_mode_connector_set_property *req = (struct vki_drm_mode_connector_set_property *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETPROPERTY).connector_id", req->connector_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETPROPERTY).prop_id", req->prop_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_SETPROPERTY).value", req->value);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETPROPBLOB:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_blob *req = (struct vki_drm_mode_get_blob *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPBLOB).blob_id", req->blob_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPBLOB).length", req->length);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETPROPBLOB).data", req->data);
+
+		   PRE_MEM_WRITE("ioctl(DRM_MODE_GETPROPBLOB).data[]", (Addr)req->data, req->length);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETPROPBLOB).length", req->length);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETFB:
+	   if (ARG3) {
+		   struct vki_drm_mode_fb_cmd *req = (struct vki_drm_mode_fb_cmd *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_GETFB).fb_id", req->fb_id);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).height", req->height);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).width", req->width);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).depth", req->depth);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).bpp", req->bpp);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).pitch", req->pitch);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_GETFB).handle", req->handle);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_ADDFB):
+	   if (ARG3) {
+		   struct vki_drm_mode_fb_cmd *req = (struct vki_drm_mode_fb_cmd *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).width", req->width);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).height", req->height);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).handle", req->handle);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).pitch", req->pitch);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).bpp", req->bpp);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_ADDFB).depth", req->depth);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_ADDFB).fb_id", req->fb_id);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_RMFB):
+	   PRE_MEM_READ("ioctl(DRM_MODE_RMFB)", ARG3, sizeof(unsigned int));
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_PAGE_FLIP):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc_page_flip *req = (struct vki_drm_mode_crtc_page_flip *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_PAGE_FLIP).flags", req->flags);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_PAGE_FLIP).reserved", req->reserved);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_PAGE_FLIP).crtc_id", req->crtc_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_PAGE_FLIP).fb_id", req->fb_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_PAGE_FLIP).user_data", req->user_data);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_DIRTYFB):
+	   if (ARG3) {
+		   struct vki_drm_mode_fb_dirty_cmd *req = (struct vki_drm_mode_fb_dirty_cmd *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DIRTYFB).fb_id", req->fb_id);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DIRTYFB).num_clips", req->num_clips);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DIRTYFB).flags", req->flags);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DIRTYFB).color", req->color);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DIRTYFB).clips_ptr", req->clips_ptr);
+		   PRE_MEM_READ("ioctl(DRM_MODE_DIRTYFB).clips_ptr[]", (Addr)req->clips_ptr,
+				   req->num_clips * sizeof(struct vki_drm_clip_rect));
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_CREATE_DUMB:
+	   if (ARG3) {
+		   struct vki_drm_mode_create_dumb *req = (struct vki_drm_mode_create_dumb *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_CREATE_DUMB).width", req->width);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_CREATE_DUMB).height", req->height);
+		   PRE_FIELD_READ("ioctl(DRM_MODE_CREATE_DUMB).bpp", req->bpp);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_CREATE_DUMB).pitch", req->pitch);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_CREATE_DUMB).size", req->size);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_CREATE_DUMB).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_MAP_DUMB:
+	   if (ARG3) {
+		   struct vki_drm_mode_map_dumb *req = (struct vki_drm_mode_map_dumb *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_MAP_DUMB).handle", req->handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_MODE_MAP_DUMB).offset", req->offset);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_DESTROY_DUMB:
+	   if (ARG3) {
+		   struct vki_drm_mode_destroy_dumb *req = (struct vki_drm_mode_destroy_dumb *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_MODE_DESTROY_DUMB).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GETPARAM:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_getparam *req = (struct vki_drm_nouveau_getparam *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GETPARAM).param", req->param);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GETPARAM).value", req->value);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_SETPARAM:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_setparam *req = (struct vki_drm_nouveau_setparam *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_SETPARAM).param", req->param);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_SETPARAM).value", req->value);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_CHANNEL_ALLOC:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_channel_alloc *req = (struct vki_drm_nouveau_channel_alloc *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).fb_ctxdma_handle", req->fb_ctxdma_handle);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).tt_ctxdma_handle", req->tt_ctxdma_handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).channel", req->channel);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).pushbuf_domains", req->pushbuf_domains);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).nr_subchan", req->nr_subchan);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).subchan[0].handle", req->subchan[0].handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).subchan[0].grclass", req->subchan[0].grclass);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_CHANNEL_ALLOC).notifier_handle", req->notifier_handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_CHANNEL_FREE:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_channel_free *req = (struct vki_drm_nouveau_channel_free *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_CHANNEL_FREE).channel", req->channel);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_grobj_alloc *req = (struct vki_drm_nouveau_grobj_alloc *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GROBJ_ALLOC).handle", req->handle);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GROBJ_ALLOC).channel", req->channel);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GROBJ_ALLOC).class", req->class);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_NOTIFIEROBJ_ALLOC:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_notifierobj_alloc *req = (struct vki_drm_nouveau_notifierobj_alloc *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_NOTIFIEROBJ_ALLOC).channel", req->channel);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_NOTIFIEROBJ_ALLOC).channel", req->handle);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_NOTIFIEROBJ_ALLOC).size", req->size);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_NOTIFIEROBJ_ALLOC).offset", req->offset);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GPUOBJ_FREE:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gpuobj_free *req = (struct vki_drm_nouveau_gpuobj_free *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GPUOBJ_FREE).channel", req->channel);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GPUOBJ_FREE).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_NEW:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_new *req = (struct vki_drm_nouveau_gem_new *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).info.tile_flags", req->info.tile_flags);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).channel_hint", req->channel_hint);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).info.size", req->info.size);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).align", req->align);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).info.domain", req->info.domain);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).info.tile_mode", req->info.tile_mode);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.domain", req->info.domain);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.size", req->info.size);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.offset", req->info.offset);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.map_handle", req->info.map_handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.map_handle", req->info.tile_mode);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.tile_flags", req->info.tile_flags);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.handle", req->info.handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_PUSHBUF:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_pushbuf *req = (struct vki_drm_nouveau_gem_pushbuf *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).channel", req->channel);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).nr_push", req->nr_push);
+		   if (req->nr_push) {
+			   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).push", req->push);
+			   PRE_MEM_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).push[]", (Addr)req->push,
+					   req->nr_push * sizeof(struct vki_drm_nouveau_gem_pushbuf_push));
+
+			   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).nr_buffers", req->nr_buffers);
+			   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).buffers", req->buffers);
+			   if (req->nr_buffers)
+				   PRE_MEM_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).buffers[]", (Addr)req->buffers,
+						   req->nr_buffers * sizeof(struct vki_drm_nouveau_gem_pushbuf_bo));
+			   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).suffix0", req->suffix0);
+
+			   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).nr_relocs", req->nr_relocs);
+		   }
+
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).vram_available", req->vram_available);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).gart_available", req->gart_available);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).suffix0", req->suffix0);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_PUSHBUF).suffix1", req->suffix1);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_PREP:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_cpu_prep *req = (struct vki_drm_nouveau_gem_cpu_prep *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_CPU_PREP).flags", req->flags);
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_CPU_PREP).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_FINI:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_cpu_fini *req = (struct vki_drm_nouveau_gem_cpu_fini *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_CPU_FINI).handle", req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_INFO:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_new *req = (struct vki_drm_nouveau_gem_new *)ARG3;
+
+		   PRE_FIELD_READ("ioctl(DRM_NOUVEAU_GEM_NEW).info.handle", req->info.handle);
+
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.domain", req->info.domain);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.size", req->info.size);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.offset", req->info.offset);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.map_handle", req->info.map_handle);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.map_handle", req->info.tile_mode);
+		   PRE_FIELD_WRITE("ioctl(DRM_NOUVEAU_GEM_NEW).info.tile_flags", req->info.tile_flags);
+	   }
+	   break;
 
    case VKI_GIO_UNIMAP:
       if ( ARG3 ) {
@@ -5861,6 +6539,394 @@ POST(sys_ioctl)
    case VKI_SIOCADDRT:           /* add routing table entry      */
    case VKI_SIOCDELRT:           /* delete routing table entry   */
       break;
+   case VKI_DRM_IOCTL_VERSION:
+	   if (ARG3) {
+		   struct vki_drm_version *req = (struct vki_drm_version *)ARG3;
+
+		   POST_FIELD_WRITE(req->version_major);
+		   POST_FIELD_WRITE(req->version_minor);
+		   POST_FIELD_WRITE(req->version_patchlevel);
+
+		   if (req->name_len && req->name)
+			   POST_MEM_WRITE((Addr)req->name, req->name_len);
+		   if (req->date_len && req->date)
+			   POST_MEM_WRITE((Addr)req->date, req->date_len);
+		   if (req->desc_len && req->desc)
+			   POST_MEM_WRITE((Addr)req->desc, req->desc_len);
+
+		   POST_FIELD_WRITE(req->name_len);
+		   POST_FIELD_WRITE(req->date_len);
+		   POST_FIELD_WRITE(req->desc_len);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GET_UNIQUE:
+	   if (ARG3) {
+		   struct vki_drm_unique *req = (struct vki_drm_unique *)ARG3;
+
+		   if (req->unique_len && req->unique)
+			   POST_MEM_WRITE((Addr)req->unique, req->unique_len);
+		   POST_FIELD_WRITE(req->unique_len);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GET_MAGIC:
+	   if (ARG3) {
+		   struct vki_drm_auth *req = (struct vki_drm_auth *)ARG3;
+
+		   POST_FIELD_WRITE(req->magic);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_IRQ_BUSID:
+	   if (ARG3) {
+		   struct vki_drm_irq_busid *req = (struct vki_drm_irq_busid *)ARG3;
+
+		   POST_FIELD_WRITE(req->irq);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GEM_CLOSE:
+	   break;
+   case VKI_DRM_IOCTL_GEM_FLINK:
+	   if (ARG3) {
+		   struct vki_drm_gem_flink *req = (struct vki_drm_gem_flink *)ARG3;
+
+		   POST_FIELD_WRITE(req->name);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_GEM_OPEN:
+	   if (ARG3) {
+		   struct vki_drm_gem_open *req = (struct vki_drm_gem_open *)ARG3;
+
+		   POST_FIELD_WRITE(req->handle);
+		   POST_FIELD_WRITE(req->size);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_SET_MASTER:
+	   break;
+   case VKI_DRM_IOCTL_DROP_MASTER:
+	   break;
+   case VKI_DRM_IOCTL_ADD_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   POST_FIELD_WRITE(req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_RM_CTX:
+	   break;
+   case VKI_DRM_IOCTL_MOD_CTX:
+	   break;
+   case VKI_DRM_IOCTL_GET_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx *req = (struct vki_drm_ctx *)ARG3;
+
+		   POST_FIELD_WRITE(req->flags);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_SWITCH_CTX:
+	   break;
+   case VKI_DRM_IOCTL_NEW_CTX:
+	   break;
+   case VKI_DRM_IOCTL_RES_CTX:
+	   if (ARG3) {
+		   struct vki_drm_ctx_res *req = (struct vki_drm_ctx_res *)ARG3;
+
+		   if (req->count && req->contexts) {
+			   POST_MEM_WRITE((Addr)req->contexts,
+					   req->count * sizeof (req->contexts[0]));
+		   }
+		   POST_FIELD_WRITE(req->count);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_WAIT_VBLANK:
+	   if (ARG3) {
+		   union vki_drm_wait_vblank *req = (union vki_drm_wait_vblank *)ARG3;
+
+		   if (!(req->request.type & VKI_DRM_VBLANK_EVENT)) {
+			   POST_FIELD_WRITE(req->reply.tval_sec);
+			   POST_FIELD_WRITE(req->reply.tval_usec);
+		   }
+
+		   POST_FIELD_WRITE(req->reply.sequence);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_UPDATE_DRAW:
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETRESOURCES:
+	   if (ARG3) {
+		   struct vki_drm_mode_card_res *req = (struct vki_drm_mode_card_res *)ARG3;
+
+		   POST_FIELD_WRITE(req->min_width);
+		   POST_FIELD_WRITE(req->max_width);
+		   POST_FIELD_WRITE(req->min_height);
+		   POST_FIELD_WRITE(req->max_height);
+
+		   // everything below is not quite true - kernel always writes to
+		   // count_*, but writes to *_ptr only if initial count_* is bigger
+		   // than needed; we don't have initial count_* in POST ioctl, so it's
+		   // impossible to tell whether kernel wrote to *_ptr or not;
+		   // so assume "null *_ptr" means "query count_*"
+		   POST_FIELD_WRITE(req->count_fbs);
+		   if (req->count_fbs && req->fb_id_ptr)
+			   POST_MEM_WRITE((Addr)req->fb_id_ptr, req->count_fbs * sizeof (__vki_u32));
+
+		   POST_FIELD_WRITE(req->count_crtcs);
+		   if (req->count_crtcs && req->crtc_id_ptr)
+			   POST_MEM_WRITE((Addr)req->crtc_id_ptr, req->count_crtcs * sizeof (__vki_u32));
+
+		   POST_FIELD_WRITE(req->count_encoders);
+		   if (req->count_encoders && req->encoder_id_ptr)
+			   POST_MEM_WRITE((Addr)req->encoder_id_ptr, req->count_encoders * sizeof (__vki_u32));
+
+		   POST_FIELD_WRITE(req->count_connectors);
+		   if (req->count_connectors && req->connector_id_ptr)
+			   POST_MEM_WRITE((Addr)req->connector_id_ptr, req->count_connectors * sizeof (__vki_u32));
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_GETCRTC):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc *req = (struct vki_drm_mode_crtc *)ARG3;
+
+		   POST_FIELD_WRITE(req->x);
+		   POST_FIELD_WRITE(req->y);
+		   POST_FIELD_WRITE(req->gamma_size);
+		   POST_FIELD_WRITE(req->fb_id);
+		   POST_FIELD_WRITE(req->mode_valid);
+
+		   if (req->mode_valid) {
+			   POST_FIELD_WRITE(req->mode.clock);
+			   POST_FIELD_WRITE(req->mode.hdisplay);
+			   POST_FIELD_WRITE(req->mode.clock);
+			   POST_FIELD_WRITE(req->mode.hsync_end);
+			   POST_FIELD_WRITE(req->mode.htotal);
+			   POST_FIELD_WRITE(req->mode.hskew);
+			   POST_FIELD_WRITE(req->mode.vdisplay);
+			   POST_FIELD_WRITE(req->mode.vsync_start);
+			   POST_FIELD_WRITE(req->mode.vsync_end);
+			   POST_FIELD_WRITE(req->mode.vtotal);
+			   POST_FIELD_WRITE(req->mode.vscan);
+			   POST_FIELD_WRITE(req->mode.vrefresh);
+			   POST_FIELD_WRITE(req->mode.flags);
+			   POST_FIELD_WRITE(req->mode.type);
+			   POST_FIELD_WRITE(req->mode.name);
+		   }
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETCRTC):
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_CURSOR):
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_GETGAMMA):
+	   if (ARG3) {
+		   struct vki_drm_mode_crtc_lut *req = (struct vki_drm_mode_crtc_lut *)ARG3;
+
+		   POST_MEM_WRITE((Addr)req->red, req->gamma_size * sizeof(__vki_u16));
+		   POST_MEM_WRITE((Addr)req->green, req->gamma_size * sizeof(__vki_u16));
+		   POST_MEM_WRITE((Addr)req->blue, req->gamma_size * sizeof(__vki_u16));
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETGAMMA):
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETENCODER:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_encoder *req = (struct vki_drm_mode_get_encoder *)ARG3;
+
+		   POST_FIELD_WRITE(req->crtc_id);
+		   POST_FIELD_WRITE(req->encoder_type);
+		   POST_FIELD_WRITE(req->encoder_id);
+		   POST_FIELD_WRITE(req->possible_clones);
+		   POST_FIELD_WRITE(req->possible_crtcs);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETCONNECTOR:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_connector *req = (struct vki_drm_mode_get_connector *)ARG3;
+
+		   POST_FIELD_WRITE(req->connector_id);
+		   POST_FIELD_WRITE(req->connector_type);
+		   POST_FIELD_WRITE(req->connector_type_id);
+		   POST_FIELD_WRITE(req->mm_width);
+		   POST_FIELD_WRITE(req->mm_height);
+		   POST_FIELD_WRITE(req->subpixel);
+		   POST_FIELD_WRITE(req->connection);
+		   POST_FIELD_WRITE(req->encoder_id);
+		   POST_FIELD_WRITE(req->count_modes);
+		   POST_FIELD_WRITE(req->count_props);
+		   POST_FIELD_WRITE(req->count_encoders);
+
+		   // see comment near VKI_DRM_IOCTL_MODE_GETRESOURCES
+		   if (req->count_modes > 0 && req->modes_ptr)
+			   POST_MEM_WRITE((Addr)req->modes_ptr, req->count_modes * sizeof(struct vki_drm_mode_modeinfo));
+
+		   if (req->count_props > 0) {
+			   if (req->props_ptr)
+				   POST_MEM_WRITE((Addr)req->props_ptr, req->count_props * sizeof(__vki_u32));
+			   if (req->prop_values_ptr)
+				   POST_MEM_WRITE((Addr)req->prop_values_ptr, req->count_props * sizeof(__vki_u64));
+		   }
+
+		   if (req->count_encoders > 0 && req->encoders_ptr)
+			   POST_MEM_WRITE((Addr)req->encoders_ptr, req->count_encoders * sizeof(__vki_u32));
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_ATTACHMODE):
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_DETACHMODE):
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETPROPERTY:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_property *req = (struct vki_drm_mode_get_property *)ARG3;
+
+		   POST_FIELD_WRITE(req->name);
+		   POST_FIELD_WRITE(req->flags);
+		   POST_FIELD_WRITE(req->count_values);
+
+		   // this API is misdesigned, you can't tell exactly how many bytes
+		   // it written without knowing the type of property
+		   // let's assume maximum possible
+
+		   // additionally see comment near VKI_DRM_IOCTL_MODE_GETRESOURCES
+
+		   if ((req->count_values || req->count_enum_blobs) && req->values_ptr)
+			   POST_MEM_WRITE(req->values_ptr,
+					   max(req->count_values * sizeof(__vki_u64),
+						   req->count_enum_blobs * sizeof(__vki_u32)));
+
+		   POST_FIELD_WRITE(req->count_enum_blobs);
+
+		   if (req->count_enum_blobs && req->enum_blob_ptr) {
+			   POST_MEM_WRITE((Addr)req->enum_blob_ptr,
+					   req->count_enum_blobs *
+						   max(sizeof(struct vki_drm_mode_property_enum), sizeof(__vki_u32)));
+		   }
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_SETPROPERTY):
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETPROPBLOB:
+	   if (ARG3) {
+		   struct vki_drm_mode_get_blob *req = (struct vki_drm_mode_get_blob *)ARG3;
+
+		   POST_MEM_WRITE((Addr)req->data, req->length);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_GETFB:
+	   if (ARG3) {
+		   struct vki_drm_mode_fb_cmd *req = (struct vki_drm_mode_fb_cmd *)ARG3;
+
+		   POST_FIELD_WRITE(req->height);
+		   POST_FIELD_WRITE(req->width);
+		   POST_FIELD_WRITE(req->depth);
+		   POST_FIELD_WRITE(req->bpp);
+		   POST_FIELD_WRITE(req->pitch);
+		   POST_FIELD_WRITE(req->handle);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_ADDFB):
+	   if (ARG3) {
+		   struct vki_drm_mode_fb_cmd *req = (struct vki_drm_mode_fb_cmd *)ARG3;
+
+		   POST_FIELD_WRITE(req->fb_id);
+	   }
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_RMFB):
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_PAGE_FLIP):
+	   break;
+   VKI_DRM_IOCTL_DOUBLE(VKI_DRM_IOCTL_MODE_DIRTYFB):
+	   break;
+   case VKI_DRM_IOCTL_MODE_CREATE_DUMB:
+	   if (ARG3) {
+		   struct vki_drm_mode_create_dumb *req = (struct vki_drm_mode_create_dumb *)ARG3;
+
+		   POST_FIELD_WRITE(req->pitch);
+		   POST_FIELD_WRITE(req->size);
+		   POST_FIELD_WRITE(req->handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_MAP_DUMB:
+	   if (ARG3) {
+		   struct vki_drm_mode_map_dumb *req = (struct vki_drm_mode_map_dumb *)ARG3;
+
+		   POST_FIELD_WRITE(req->offset);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_MODE_DESTROY_DUMB:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GETPARAM:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_getparam *req = (struct vki_drm_nouveau_getparam *)ARG3;
+
+		   POST_FIELD_WRITE(req->value);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_SETPARAM:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_CHANNEL_ALLOC:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_channel_alloc *req = (struct vki_drm_nouveau_channel_alloc *)ARG3;
+		   int i;
+
+		   POST_FIELD_WRITE(req->channel);
+		   POST_FIELD_WRITE(req->pushbuf_domains);
+		   POST_FIELD_WRITE(req->nr_subchan);
+		   for (i = 0; i < req->nr_subchan; ++i) {
+			   POST_FIELD_WRITE(req->subchan[i].handle);
+			   POST_FIELD_WRITE(req->subchan[i].grclass);
+		   }
+		   POST_FIELD_WRITE(req->notifier_handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_CHANNEL_FREE:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_NOTIFIEROBJ_ALLOC:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_notifierobj_alloc *req = (struct vki_drm_nouveau_notifierobj_alloc *)ARG3;
+
+		   POST_FIELD_WRITE(req->offset);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GPUOBJ_FREE:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_NEW:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_new *req = (struct vki_drm_nouveau_gem_new *)ARG3;
+
+		   POST_FIELD_WRITE(req->info.domain);
+		   POST_FIELD_WRITE(req->info.size);
+		   POST_FIELD_WRITE(req->info.offset);
+		   POST_FIELD_WRITE(req->info.map_handle);
+		   POST_FIELD_WRITE(req->info.tile_mode);
+		   POST_FIELD_WRITE(req->info.tile_flags);
+		   POST_FIELD_WRITE(req->info.handle);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_PUSHBUF:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_pushbuf *req = (struct vki_drm_nouveau_gem_pushbuf *)ARG3;
+
+		   POST_FIELD_WRITE(req->vram_available);
+		   POST_FIELD_WRITE(req->gart_available);
+		   POST_FIELD_WRITE(req->suffix0);
+		   POST_FIELD_WRITE(req->suffix1);
+	   }
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_PREP:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_CPU_FINI:
+	   break;
+   case VKI_DRM_IOCTL_NOUVEAU_GEM_INFO:
+	   if (ARG3) {
+		   struct vki_drm_nouveau_gem_new *req = (struct vki_drm_nouveau_gem_new *)ARG3;
+
+		   POST_FIELD_WRITE(req->info.domain);
+		   POST_FIELD_WRITE(req->info.size);
+		   POST_FIELD_WRITE(req->info.offset);
+		   POST_FIELD_WRITE(req->info.map_handle);
+		   POST_FIELD_WRITE(req->info.tile_mode);
+		   POST_FIELD_WRITE(req->info.tile_flags);
+	   }
+	   break;
 
       /* RARP cache control calls. */
    case VKI_SIOCDRARP:           /* delete RARP table entry      */
