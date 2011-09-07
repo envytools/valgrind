@@ -5,7 +5,7 @@ if VGCONF_HAVE_PLATFORM_SEC
 noinst_PROGRAMS += mmt-@VGCONF_ARCH_SEC@-@VGCONF_OS@
 endif
 
-MMT_SOURCES_COMMON = mmt_main.c
+MMT_SOURCES_COMMON = mmt_main.c mmt_nv_ioctl.c
 
 mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_SOURCES      = \
 	$(MMT_SOURCES_COMMON)
