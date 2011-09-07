@@ -169,7 +169,7 @@ void mmt_nv_ioctl_post_close(UWord *args)
 	}
 }
 
-void mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
+int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 {
 	void *start = (void *)args[0];
 	unsigned long len = args[1];
@@ -198,10 +198,11 @@ void mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 						"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
 						region->data1, region->data2, (void *)region->start, len,
 						region->offset, region->id);
-				return;
+				return 1;
 			}
 		}
 	}
+	return 0;
 }
 
 static struct object_type {
