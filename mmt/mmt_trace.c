@@ -344,7 +344,8 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 		}
 	}
 
-	mmt_nv_ioctl_post_mmap(args, res, offset_unit);
+	if (mmt_nv_ioctl_post_mmap(args, res, offset_unit))
+		return;
 
 	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
 	{
