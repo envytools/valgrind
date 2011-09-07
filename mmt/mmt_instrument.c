@@ -22,7 +22,7 @@
 */
 
 #include "mmt_instrument.h"
-#include "mmt_main.h"
+#include "mmt_trace.h"
 
 #include "pub_tool_machine.h"
 #include "pub_tool_libcprint.h"
@@ -36,7 +36,7 @@ static void add_trace_load1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IR
 					  mkIRExpr_HWord(inst_addr), val1);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_load",
-					VG_(fnptr_to_fnentry) (trace_load),
+					VG_(fnptr_to_fnentry) (mmt_trace_load),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
@@ -47,7 +47,7 @@ static void add_trace_load2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IR
 					  mkIRExpr_HWord(inst_addr), val1, val2);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_load2",
-					VG_(fnptr_to_fnentry) (trace_load2),
+					VG_(fnptr_to_fnentry) (mmt_trace_load2),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
@@ -59,7 +59,7 @@ static void add_trace_load4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IR
 					  mkIRExpr_HWord(inst_addr), val1, val2, val3, val4);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_load4",
-					VG_(fnptr_to_fnentry) (trace_load4),
+					VG_(fnptr_to_fnentry) (mmt_trace_load4),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
@@ -268,7 +268,7 @@ add_trace_store1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 					mkIRExpr_HWord(inst_addr), data);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_store",
-					VG_(fnptr_to_fnentry) (trace_store),
+					VG_(fnptr_to_fnentry) (mmt_trace_store),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
@@ -282,7 +282,7 @@ add_trace_store2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 					data1, data2);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_store2",
-					VG_(fnptr_to_fnentry) (trace_store2),
+					VG_(fnptr_to_fnentry) (mmt_trace_store2),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
@@ -296,7 +296,7 @@ add_trace_store4(IRSB *bb, IRExpr *addr, Addr inst_addr,
 					data1, data2, data3, data4);
 	IRDirty *di = unsafeIRDirty_0_N(2,
 					"trace_store4",
-					VG_(fnptr_to_fnentry) (trace_store4),
+					VG_(fnptr_to_fnentry) (mmt_trace_store4),
 					argv);
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
