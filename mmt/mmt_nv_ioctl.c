@@ -21,7 +21,7 @@
    The GNU General Public License is contained in the file COPYING.
 */
 #include "mmt_nv_ioctl.h"
-#include "mmt_main.h"
+#include "mmt_trace.h"
 #include "pub_tool_vki.h"
 #include "pub_tool_libcprint.h"
 #include "pub_tool_libcfile.h"
@@ -29,8 +29,6 @@
 #include "pub_tool_libcproc.h"
 
 #include <sys/select.h>
-#include <fcntl.h>
-#include <string.h>
 
 static fd_set nvidiactl_fds;
 static fd_set nvidia0_fds;
@@ -56,7 +54,7 @@ void mmt_nv_ioctl_post_clo_init(void)
 {
 	if (mmt_trace_marks) {
 		SysRes ff;
-		ff = VG_(open)("/sys/kernel/debug/tracing/trace_marker", O_WRONLY, 0777);
+		ff = VG_(open)("/sys/kernel/debug/tracing/trace_marker", VKI_O_WRONLY, 0777);
 		if (ff._isError) {
 			VG_(message) (Vg_UserMsg, "Cannot open marker file!\n");
 			mmt_trace_marks = 0;
@@ -84,7 +82,7 @@ static struct mmt_mmap_data *get_nvidia_mapping(Off64T offset)
 	}
 
 	region = &mmt_mmaps[++mmt_last_region];
-	region->id = current_item++;
+	region->id = mmt_current_item++;
 	region->fd = 0;
 	region->offset = offset;
 	return region;
@@ -349,7 +347,7 @@ void mmt_nv_ioctl_pre(UWord *args)
 
 		size = ((id & 0x3FFF0000) >> 16) / 4;
 		VG_(sprintf) (line, "pre_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-		idx = strlen(line);
+		idx = VG_(strlen(line));
 
 		for (i = 0; i < size; ++i)
 		{
@@ -490,7 +488,7 @@ void mmt_nv_ioctl_post(UWord *args)
 
 		size = ((id & 0x3FFF0000) >> 16) / 4;
 		VG_(sprintf) (line, "post_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-		idx = strlen(line);
+		idx = VG_(strlen(line));
 
 		for (i = 0; i < size; ++i)
 		{
