@@ -27,6 +27,7 @@
 #include "pub_tool_libcfile.h"
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcproc.h"
+#include "pub_tool_libcassert.h"
 
 #include <sys/select.h>
 
@@ -78,6 +79,7 @@ static struct mmt_mmap_data *get_nvidia_mapping(Off64T offset)
 	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
 	{
 		VG_(message)(Vg_UserMsg, "no space for new mapping!\n");
+		tl_assert(0);
 		return NULL;
 	}
 
