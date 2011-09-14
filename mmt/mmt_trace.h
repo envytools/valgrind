@@ -10,7 +10,7 @@
 #endif
 
 #define MMT_MAX_TRACE_FILES 10
-#define MMT_MAX_REGIONS 100
+#define MMT_MAX_REGIONS 1000
 
 struct mmt_mmap_data {
 	Addr start;
