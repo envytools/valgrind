@@ -28,6 +28,7 @@
 #include "pub_tool_libcprint.h"
 #include "pub_tool_vkiscnums.h"
 #include "pub_tool_debuginfo.h"
+#include "pub_tool_libcassert.h"
 
 //#define MMT_PRINT_FILENAMES
 
@@ -347,6 +348,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
 	{
 		VG_(message)(Vg_UserMsg, "not enough space for new mmap!\n");
+		tl_assert(0);
 		return;
 	}
 
