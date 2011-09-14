@@ -27,6 +27,9 @@
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcprint.h"
 #include "pub_tool_vkiscnums.h"
+#include "pub_tool_debuginfo.h"
+
+//#define MMT_PRINT_FILENAMES
 
 struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
 int mmt_last_region = -1;
@@ -53,32 +56,26 @@ static struct mmt_mmap_data *find_mmap(Addr addr)
 	return NULL;
 }
 
+#ifdef MMT_PRINT_FILENAMES
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
-#if 0
-	const SegInfo *si;
-	/* Search for it in segments */
-	VG_(snprintf) (namestr, len, "@%08x", inst_addr);
-	for (si = VG_(next_seginfo) (NULL);
-		 si != NULL; si = VG_(next_seginfo) (si))
+	char filename[100];
+	UInt line = 0;
+
+	if (VG_(get_filename)(inst_addr, filename, 100))
 	{
-		Addr base = VG_(seginfo_start) (si);
-		SizeT size = VG_(seginfo_size) (si);
-
-		if (inst_addr >= base && inst_addr < base + size)
-		{
-			const UChar *filename = VG_(seginfo_filename) (si);
-			VG_(snprintf) (namestr, len, "@%08x (%s:%08x)", inst_addr,
-					filename, inst_addr - base);
-
-			break;
-		}
+		VG_(get_linenum)(inst_addr, &line);
+		VG_(snprintf) (namestr, len, "@%08lx (%s:%d)", inst_addr, filename, line);
 	}
-#else
-	VG_(strcpy) (namestr, "");
-#endif
-
+	else
+		VG_(snprintf) (namestr, len, "@%08lx", inst_addr);
 }
+#else
+static inline void mydescribe(Addr inst_addr, char *namestr, int len)
+{
+	namestr[0] = 0;
+}
+#endif
 
 VG_REGPARM(2)
 void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value)
