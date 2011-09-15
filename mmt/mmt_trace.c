@@ -44,6 +44,15 @@ int mmt_trace_all_files = False;
 
 static struct mmt_mmap_data *last_used_region;
 
+struct negative_region {
+	Addr start, end;
+	int score;
+};
+
+#define NEG_REGS 10
+static struct negative_region neg_regions[NEG_REGS];
+static int neg_regions_number;
+
 static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
 	int start = 0, end = mmt_last_region, middle;
@@ -70,11 +79,41 @@ static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 	return NULL;
 }
 
+static void add_neg(Addr start, Addr end)
+{
+	if (neg_regions_number < NEG_REGS)
+		neg_regions_number++;
+	neg_regions[neg_regions_number - 1].start = start;
+	neg_regions[neg_regions_number - 1].end = end;
+	neg_regions[neg_regions_number - 1].score = 0;
+}
+
 /* finds region to which addr belongs to */
 static struct mmt_mmap_data *mmt_bsearch(Addr addr)
 {
+	struct mmt_mmap_data *region;
 	int tmp;
-	return __mmt_bsearch(addr, &tmp);
+
+	/* before first? */
+	if (addr < mmt_mmaps[0].start)
+	{
+		add_neg(0, mmt_mmaps[0].start);
+		return NULL;
+	}
+
+	/* after last? */
+	if (addr >= mmt_mmaps[mmt_last_region].end)
+	{
+		add_neg(mmt_mmaps[mmt_last_region].end, (Addr)-1);
+		return NULL;
+	}
+
+	region = __mmt_bsearch(addr, &tmp);
+	if (region)
+		return region;
+
+	add_neg(mmt_mmaps[tmp - 1].end, mmt_mmaps[tmp].start);
+	return NULL;
 }
 
 /* finds index of region which follows addr, assuming it does not belong to any */
@@ -85,12 +124,56 @@ static int mmt_bsearch_next(Addr addr)
 	return index;
 }
 
+static void score_higher(int i)
+{
+	struct negative_region tmp;
+	struct negative_region *curr = &neg_regions[i];
+	do
+	{
+		tmp = curr[-1];
+		curr[-1] = *curr;
+		*curr = tmp;
+
+		i--;
+		curr--;
+	}
+	while (i > 1 && curr->score > curr[-1].score);
+}
+
 static struct mmt_mmap_data *find_mmap(Addr addr)
 {
 	struct mmt_mmap_data *region;
+	struct negative_region *neg = neg_regions;
+	int i;
+
+	if (addr >= neg->start && addr < neg->end)
+	{
+		neg->score++;
+		return NULL;
+	}
 
 	if (last_used_region && addr >= last_used_region->start && addr < last_used_region->end)
 		return last_used_region;
+
+	/* if score of first negative entry grew too much - divide all entries;
+	 * it prevents overflowing and monopoly at the top */
+	if (neg->score > 1 << 24)
+		for (i = 0; i < neg_regions_number; ++i)
+			neg_regions[i].score >>= 10;
+
+	/* check all negative regions */
+	for (i = 1; i < neg_regions_number; ++i)
+	{
+		neg++;
+		if (addr >= neg->start && addr < neg->end)
+		{
+			neg->score++;
+			/* if current entry score is bigger than previous */
+			if (neg->score > neg[-1].score)
+				score_higher(i); /* then swap them */
+			return NULL;
+		}
+	}
 
 	region = mmt_bsearch(addr);
 
@@ -160,9 +243,100 @@ struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UW
 	return fd0_region;
 }
 
+static void remove_neg_region(int idx)
+{
+	VG_(memmove)(&neg_regions[idx], &neg_regions[idx + 1], (neg_regions_number - idx - 1) * sizeof(neg_regions[0]));
+	neg_regions_number--;
+	VG_(memset)(&neg_regions[neg_regions_number], 0, sizeof(neg_regions[0]));
+}
+
 void mmt_free_region(struct mmt_mmap_data *m)
 {
 	int idx = m - &mmt_mmaps[0];
+	int i, found = -1;
+	Addr start = m->start;
+	Addr end = m->end;
+	int joined = 0;
+
+	/* are we freeing region adjacent to negative region?
+	 * if yes, then extend negative region */
+	for (i = 0; i < neg_regions_number; ++i)
+	{
+		struct negative_region *neg = &neg_regions[i];
+
+		if (neg->end == start)
+		{
+			neg->end = end;
+			found = i;
+			break;
+		}
+		if (neg->start == end)
+		{
+			neg->start = start;
+			found = i;
+			break;
+		}
+	}
+
+	if (found >= 0)
+	{
+		/* now that we extended negative region, maybe we can join two negative regions? */
+		struct negative_region *found_reg = &neg_regions[found];
+		int score = found_reg->score;
+		start = found_reg->start;
+		end = found_reg->end;
+
+		for (i = 0; i < neg_regions_number; ++i)
+		{
+			struct negative_region *neg = &neg_regions[i];
+
+			if (neg->end == start)
+			{
+				/* there is another negative region which ends where our starts */
+
+				if (neg->score > score)
+				{
+					/* another is better */
+					neg->end = end;
+
+					remove_neg_region(found);
+				}
+				else
+				{
+					/* our is better */
+					found_reg->start = neg->start;
+
+					remove_neg_region(i);
+				}
+
+				joined = 1;
+				break;
+			}
+
+			if (neg->start == end)
+			{
+				/* there is another negative region which starts where our ends */
+
+				if (neg->score > score)
+				{
+					/* another is better */
+					neg->start = start;
+
+					remove_neg_region(found);
+				}
+				else
+				{
+					/* our is better */
+					found_reg->end = neg->end;
+
+					remove_neg_region(i);
+				}
+
+				joined = 1;
+				break;
+			}
+		}
+	}
 
 	if (mmt_last_region != idx)
 		VG_(memmove)(mmt_mmaps + idx, mmt_mmaps + idx + 1,
@@ -177,24 +351,51 @@ void mmt_free_region(struct mmt_mmap_data *m)
 		/* then move pointer by -1 */
 		last_used_region--;
 	}
+
+	if (found >= 0)
+	{
+		/* we could not join multiple negative regions, maybe we can extend it? */
+		if (!joined)
+		{
+			struct negative_region *found_reg = &neg_regions[found];
+			int tmp = 0;
+			struct mmt_mmap_data *region;
+
+			if (start > 0)
+			{
+				region = __mmt_bsearch(start - 1, &tmp);
+				if (region == NULL)
+				{
+					if (tmp >= 1)
+						found_reg->start = mmt_mmaps[tmp - 1].end;
+				}
+			}
+			if (end < (Addr)-1)
+			{
+				region = __mmt_bsearch(end, &tmp);
+				if (region == NULL)
+				{
+					if (tmp <= mmt_last_region)
+						found_reg->end = mmt_mmaps[tmp].start;
+				}
+			}
+		}
+	}
 }
 
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 		Off64T offset, UInt id, UWord data1, UWord data2)
 {
 	struct mmt_mmap_data *region;
+	int i;
 
-	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
-	{
-		VG_(message)(Vg_UserMsg, "not enough space for new mmap!\n");
-		tl_assert(0);
-	}
+	tl_assert2(mmt_last_region + 1 < MMT_MAX_REGIONS, "not enough space for new mmap!");
 
 	if (start >= mmt_mmaps[mmt_last_region].end)
 		region = &mmt_mmaps[++mmt_last_region];
 	else
 	{
-		int i = mmt_bsearch_next(start);
+		i = mmt_bsearch_next(start);
 
 		region = &mmt_mmaps[i];
 		if (i != mmt_last_region + 1)
@@ -207,6 +408,16 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 		}
 		mmt_last_region++;
 	}
+
+	/* look for negative regions overlapping new region */
+	for (i = 0; i < neg_regions_number; ++i)
+		if ((start >= neg_regions[i].start && start < neg_regions[i].end) ||
+			(end   >= neg_regions[i].start && end   < neg_regions[i].end))
+		{
+			/* just remove negative region */
+			remove_neg_region(i);
+			i--;
+		}
 
 	region->fd = fd;
 	if (id == 0)
@@ -514,11 +725,12 @@ static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	Addr start = args[0];
 //	unsigned long len = args[1];
 	struct mmt_mmap_data *region;
+	int tmpi;
 
 	if (res._isError)
 		return;
 
-	region = mmt_bsearch(start);
+	region = __mmt_bsearch(start, &tmpi);
 	if (!region)
 		return;
 
@@ -537,11 +749,12 @@ static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	unsigned long new_len = args[2];
 //	unsigned long flags = args[3];
 	struct mmt_mmap_data *region, tmp;
+	int tmpi;
 
 	if (res._isError)
 		return;
 
-	region = mmt_bsearch(start);
+	region = __mmt_bsearch(start, &tmpi);
 	if (!region)
 		return;
 
