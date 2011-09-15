@@ -42,6 +42,8 @@ struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 
 int mmt_trace_all_files = False;
 
+static struct mmt_mmap_data *last_used_region;
+
 static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
 	int start = 0, end = mmt_last_region, middle;
@@ -87,7 +89,13 @@ static struct mmt_mmap_data *find_mmap(Addr addr)
 {
 	struct mmt_mmap_data *region;
 
+	if (last_used_region && addr >= last_used_region->start && addr < last_used_region->end)
+		return last_used_region;
+
 	region = mmt_bsearch(addr);
+
+	if (region)
+		last_used_region = region;
 
 	return region;
 }
@@ -152,17 +160,23 @@ struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UW
 	return fd0_region;
 }
 
-static inline void mmt_free_region_idx(int idx)
+void mmt_free_region(struct mmt_mmap_data *m)
 {
+	int idx = m - &mmt_mmaps[0];
+
 	if (mmt_last_region != idx)
 		VG_(memmove)(mmt_mmaps + idx, mmt_mmaps + idx + 1,
 				(mmt_last_region - idx) * sizeof(struct mmt_mmap_data));
 	VG_(memset)(&mmt_mmaps[mmt_last_region--], 0, sizeof(struct mmt_mmap_data));
-}
 
-void mmt_free_region(struct mmt_mmap_data *m)
-{
-	mmt_free_region_idx(m - &mmt_mmaps[0]);
+	/* if we are releasing last used region, then zero cache */
+	if (m == last_used_region)
+		last_used_region = NULL;
+	else if (last_used_region > m) /* if last used region was in area which just moved */
+	{
+		/* then move pointer by -1 */
+		last_used_region--;
+	}
 }
 
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
@@ -182,11 +196,16 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	{
 		int i = mmt_bsearch_next(start);
 
+		region = &mmt_mmaps[i];
 		if (i != mmt_last_region + 1)
+		{
 			VG_(memmove)(&mmt_mmaps[i+1], &mmt_mmaps[i],
 					(mmt_last_region - i  + 1) * sizeof(mmt_mmaps[0]));
+
+			if (last_used_region >= region)
+				last_used_region++;
+		}
 		mmt_last_region++;
-		region = &mmt_mmaps[i];
 	}
 
 	region->fd = fd;
