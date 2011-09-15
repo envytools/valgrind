@@ -3,10 +3,10 @@ all: build test
 build: mmaptest32 mmaptest64
 
 mmaptest32: mmaptest.c
-	@gcc -m32 -msse mmaptest.c -o mmaptest32
+	@gcc -m32 -msse -Wall mmaptest.c -o mmaptest32
 
 mmaptest64: mmaptest.c
-	@gcc -m64 mmaptest.c -o mmaptest64
+	@gcc -m64 mmaptest.c -Wall -o mmaptest64
 
 clean:
 	@rm -f mmaptest32 mmaptest64 mmaptest32.out1.tmp mmaptest32.out2.tmp mmaptest64.out1.tmp mmaptest64.out2.tmp
