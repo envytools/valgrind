@@ -53,6 +53,10 @@ struct negative_region {
 static struct negative_region neg_regions[NEG_REGS];
 static int neg_regions_number;
 
+#define likely(x)	__builtin_expect(!!(x), 1)
+#define unlikely(x)	__builtin_expect(!!(x), 0)
+#define noinline	__attribute__((noinline))
+
 static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
 	int start = 0, end = mmt_last_region, middle;
@@ -89,7 +93,7 @@ static void add_neg(Addr start, Addr end)
 }
 
 /* finds region to which addr belongs to */
-static struct mmt_mmap_data *mmt_bsearch(Addr addr)
+static noinline struct mmt_mmap_data *mmt_bsearch(Addr addr)
 {
 	struct mmt_mmap_data *region;
 	int tmp;
@@ -124,7 +128,7 @@ static int mmt_bsearch_next(Addr addr)
 	return index;
 }
 
-static void score_higher(int i)
+static noinline void score_higher(int i)
 {
 	struct negative_region tmp;
 	struct negative_region *curr = &neg_regions[i];
@@ -140,24 +144,24 @@ static void score_higher(int i)
 	while (i > 1 && curr->score > curr[-1].score);
 }
 
-static struct mmt_mmap_data *find_mmap(Addr addr)
+static inline struct mmt_mmap_data *find_mmap(Addr addr)
 {
 	struct mmt_mmap_data *region;
 	struct negative_region *neg = neg_regions;
 	int i;
 
-	if (addr >= neg->start && addr < neg->end)
+	if (likely(addr >= neg->start && addr < neg->end))
 	{
 		neg->score++;
 		return NULL;
 	}
 
-	if (last_used_region && addr >= last_used_region->start && addr < last_used_region->end)
+	if (likely(last_used_region && addr >= last_used_region->start && addr < last_used_region->end))
 		return last_used_region;
 
 	/* if score of first negative entry grew too much - divide all entries;
 	 * it prevents overflowing and monopoly at the top */
-	if (neg->score > 1 << 24)
+	if (unlikely(neg->score > 1 << 24))
 		for (i = 0; i < neg_regions_number; ++i)
 			neg_regions[i].score >>= 10;
 
@@ -165,11 +169,11 @@ static struct mmt_mmap_data *find_mmap(Addr addr)
 	for (i = 1; i < neg_regions_number; ++i)
 	{
 		neg++;
-		if (addr >= neg->start && addr < neg->end)
+		if (likely(addr >= neg->start && addr < neg->end))
 		{
 			neg->score++;
 			/* if current entry score is bigger than previous */
-			if (neg->score > neg[-1].score)
+			if (unlikely(neg->score > neg[-1].score))
 				score_higher(i); /* then swap them */
 			return NULL;
 		}
@@ -462,7 +466,7 @@ void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	switch (size)
@@ -497,7 +501,7 @@ void mmt_trace_store2(Addr addr, SizeT size, Addr inst_addr, UWord value1, UWord
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	switch (size)
@@ -530,7 +534,7 @@ void mmt_trace_store4(Addr addr, Addr inst_addr, UWord value1, UWord value2, UWo
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
@@ -548,7 +552,7 @@ void mmt_trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	switch (size)
@@ -583,7 +587,7 @@ void mmt_trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord 
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	switch (size)
@@ -615,7 +619,7 @@ void mmt_trace_load4(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord 
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (!region)
+	if (likely(!region))
 		return;
 
 	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
