@@ -438,6 +438,7 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 }
 
 #ifdef MMT_PRINT_FILENAMES
+#define MMT_NAMESTR_LEN 256
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
 	char filename[100];
@@ -452,6 +453,7 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 		VG_(snprintf) (namestr, len, "@%08lx", inst_addr);
 }
 #else
+#define MMT_NAMESTR_LEN 1
 static inline void mydescribe(Addr inst_addr, char *namestr, int len)
 {
 	namestr[0] = 0;
@@ -462,8 +464,8 @@ VG_REGPARM(2)
 void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[22];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
@@ -488,7 +490,7 @@ void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value)
 		default:
 			return;
 	}
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
@@ -497,8 +499,8 @@ VG_REGPARM(2)
 void mmt_trace_store2(Addr addr, SizeT size, Addr inst_addr, UWord value1, UWord value2)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[44];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
@@ -520,7 +522,7 @@ void mmt_trace_store2(Addr addr, SizeT size, Addr inst_addr, UWord value1, UWord
 			return;
 	}
 
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
@@ -530,15 +532,15 @@ VG_REGPARM(2)
 void mmt_trace_store4(Addr addr, Addr inst_addr, UWord value1, UWord value2, UWord value3, UWord value4)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[44];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
 	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
@@ -548,8 +550,8 @@ VG_REGPARM(2)
 void mmt_trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[22];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
@@ -574,7 +576,7 @@ void mmt_trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value)
 		default:
 			return;
 	}
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
@@ -583,8 +585,8 @@ VG_REGPARM(2)
 void mmt_trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[44];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
@@ -605,7 +607,7 @@ void mmt_trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord 
 		default:
 			return;
 	}
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
@@ -615,15 +617,15 @@ VG_REGPARM(2)
 void mmt_trace_load4(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2, UWord value3, UWord value4)
 {
 	struct mmt_mmap_data *region;
-	char valstr[64];
-	char namestr[256];
+	char valstr[44];
+	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
 	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
-	mydescribe(inst_addr, namestr, 256);
+	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
 
 	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
 }
