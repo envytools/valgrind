@@ -27,16 +27,17 @@ struct mmt_trace_file {
 	fd_set fds;
 };
 
-extern struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
-extern int mmt_last_region;
-
-extern UInt mmt_current_item;
-
 extern int mmt_trace_opens;
 extern struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 extern int mmt_trace_all_files;
 
-void mmt_free_region(int idx);
+void mmt_free_region(struct mmt_mmap_data *m);
+struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
+		Off64T offset, UInt id, UWord data1, UWord data2);
+
+struct mmt_mmap_data *mmt_find_region_by_fd_offset(int fd, Off64T offset);
+struct mmt_mmap_data *mmt_find_region_by_fdset_offset(fd_set *fds, Off64T offset);
+struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UWord data2);
 
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs);
 

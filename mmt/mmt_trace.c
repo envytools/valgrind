@@ -1,7 +1,7 @@
 /*
    Copyright (C) 2006 Dave Airlie
    Copyright (C) 2007 Wladimir J. van der Laan
-   Copyright (C) 2009 Marcin Slusarz <marcin.slusarz@gmail.com>
+   Copyright (C) 2009, 2011 Marcin Slusarz <marcin.slusarz@gmail.com>
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -32,29 +32,175 @@
 
 //#define MMT_PRINT_FILENAMES
 
-struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
-int mmt_last_region = -1;
+static struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
+static int mmt_last_region = -1;
 
-UInt mmt_current_item = 1;
+static UInt mmt_current_item = 1;
 
 int mmt_trace_opens = False;
 struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 
 int mmt_trace_all_files = False;
 
-static struct mmt_mmap_data *find_mmap(Addr addr)
+static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
-	struct mmt_mmap_data *region = NULL;
-	int i;
+	int start = 0, end = mmt_last_region, middle;
+	struct mmt_mmap_data *tmp;
 
-	for (i = 0; i <= mmt_last_region; i++)
+	while (start <= end)
 	{
-		region = &mmt_mmaps[i];
-		if (addr >= region->start && addr < region->end)
-			return region;
+		middle = start + (end - start) / 2;
+		tmp = &mmt_mmaps[middle];
+
+		if (addr < tmp->start)
+		{
+			if (end == middle)
+				break;
+			end = middle;
+		}
+		else if (addr >= tmp->end)
+			start = middle + 1;
+		else
+			return tmp;
 	}
+	*next = start;
 
 	return NULL;
+}
+
+/* finds region to which addr belongs to */
+static struct mmt_mmap_data *mmt_bsearch(Addr addr)
+{
+	int tmp;
+	return __mmt_bsearch(addr, &tmp);
+}
+
+/* finds index of region which follows addr, assuming it does not belong to any */
+static int mmt_bsearch_next(Addr addr)
+{
+	int index;
+	tl_assert(__mmt_bsearch(addr, &index) == NULL);
+	return index;
+}
+
+static struct mmt_mmap_data *find_mmap(Addr addr)
+{
+	struct mmt_mmap_data *region;
+
+	region = mmt_bsearch(addr);
+
+	return region;
+}
+
+struct mmt_mmap_data *mmt_find_region_by_fd_offset(int fd, Off64T offset)
+{
+	int i;
+	struct mmt_mmap_data *fd0_region = NULL;
+
+	for (i = 0; i <= mmt_last_region; ++i)
+	{
+		struct mmt_mmap_data *region = &mmt_mmaps[i];
+		if (region->offset == offset)
+		{
+			if (region->fd == fd)
+				return region;
+			if (region->fd == 0)
+				fd0_region = region;
+		}
+	}
+
+	return fd0_region;
+}
+
+struct mmt_mmap_data *mmt_find_region_by_fdset_offset(fd_set *fds, Off64T offset)
+{
+	int i;
+	struct mmt_mmap_data *fd0_region = NULL;
+
+	for (i = 0; i <= mmt_last_region; ++i)
+	{
+		struct mmt_mmap_data *region = &mmt_mmaps[i];
+		if (region->offset == offset)
+		{
+			if (FD_ISSET(region->fd, fds))
+				return region;
+			if (region->fd == 0)
+				fd0_region = region;
+		}
+	}
+
+	return fd0_region;
+}
+
+struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UWord data2)
+{
+	int i;
+	struct mmt_mmap_data *fd0_region = NULL;
+
+	for (i = 0; i <= mmt_last_region; ++i)
+	{
+		struct mmt_mmap_data *region = &mmt_mmaps[i];
+		if (region->data1 == data1 && region->data2 == data2)
+		{
+			if (FD_ISSET(region->fd, fds))
+				return region;
+			if (region->fd == 0)
+				fd0_region = region;
+		}
+	}
+
+	return fd0_region;
+}
+
+static inline void mmt_free_region_idx(int idx)
+{
+	if (mmt_last_region != idx)
+		VG_(memmove)(mmt_mmaps + idx, mmt_mmaps + idx + 1,
+				(mmt_last_region - idx) * sizeof(struct mmt_mmap_data));
+	VG_(memset)(&mmt_mmaps[mmt_last_region--], 0, sizeof(struct mmt_mmap_data));
+}
+
+void mmt_free_region(struct mmt_mmap_data *m)
+{
+	mmt_free_region_idx(m - &mmt_mmaps[0]);
+}
+
+struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
+		Off64T offset, UInt id, UWord data1, UWord data2)
+{
+	struct mmt_mmap_data *region;
+
+	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
+	{
+		VG_(message)(Vg_UserMsg, "not enough space for new mmap!\n");
+		tl_assert(0);
+	}
+
+	if (start >= mmt_mmaps[mmt_last_region].end)
+		region = &mmt_mmaps[++mmt_last_region];
+	else
+	{
+		int i = mmt_bsearch_next(start);
+
+		if (i != mmt_last_region + 1)
+			VG_(memmove)(&mmt_mmaps[i+1], &mmt_mmaps[i],
+					(mmt_last_region - i  + 1) * sizeof(mmt_mmaps[0]));
+		mmt_last_region++;
+		region = &mmt_mmaps[i];
+	}
+
+	region->fd = fd;
+	if (id == 0)
+		region->id = mmt_current_item++;
+	else
+		region->id = id;
+	region->start = start;
+	region->end = end;
+	region->offset = offset;
+	region->data1 = data1;
+	region->data2 = data2;
+
+	return region;
 }
 
 #ifdef MMT_PRINT_FILENAMES
@@ -255,14 +401,6 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 		mmt_nv_ioctl_pre(args);
 }
 
-void mmt_free_region(int idx)
-{
-	if (mmt_last_region != idx)
-		VG_(memmove)(mmt_mmaps + idx, mmt_mmaps + idx + 1,
-				(mmt_last_region - idx) * sizeof(struct mmt_mmap_data));
-	VG_(memset)(&mmt_mmaps[mmt_last_region--], 0, sizeof(struct mmt_mmap_data));
-}
-
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 {
 	const char *path = (const char *)args[0];
@@ -314,7 +452,7 @@ static void post_close(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 
 static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int offset_unit)
 {
-	void *start = (void *)args[0];
+	Addr start = args[0];
 	unsigned long len = args[1];
 //	unsigned long prot = args[2];
 //	unsigned long flags = args[3];
@@ -326,7 +464,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	if (res._isError || (int)fd == -1)
 		return;
 
-	start = (void *)res._val;
+	start = res._val;
 
 	if (!mmt_trace_all_files)
 	{
@@ -345,20 +483,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	if (mmt_nv_ioctl_post_mmap(args, res, offset_unit))
 		return;
 
-	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
-	{
-		VG_(message)(Vg_UserMsg, "not enough space for new mmap!\n");
-		tl_assert(0);
-		return;
-	}
-
-	region = &mmt_mmaps[++mmt_last_region];
-
-	region->fd = fd;
-	region->id = mmt_current_item++;
-	region->start = (Addr)start;
-	region->end = (Addr)(((char *)start) + len);
-	region->offset = offset * offset_unit;
+	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0, 0, 0);
 
 	VG_(message) (Vg_DebugMsg,
 			"got new mmap at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
@@ -367,57 +492,50 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 
 static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 {
-	void *start = (void *)args[0];
+	Addr start = args[0];
 //	unsigned long len = args[1];
-	int i;
 	struct mmt_mmap_data *region;
 
 	if (res._isError)
 		return;
 
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		region = &mmt_mmaps[i];
-		if (region->start == (Addr)start)
-		{
-			VG_(message) (Vg_DebugMsg,
-					"removed mmap 0x%lx:0x%lx for: %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-					region->data1, region->data2, (void *)region->start,
-					region->end - region->start, region->offset, region->id);
-			mmt_free_region(i);
-			return;
-		}
-	}
+	region = mmt_bsearch(start);
+	if (!region)
+		return;
+
+	VG_(message) (Vg_DebugMsg,
+			"removed mmap 0x%lx:0x%lx for: %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
+			region->data1, region->data2, (void *)region->start,
+			region->end - region->start, region->offset, region->id);
+
+	mmt_free_region(region);
 }
 
 static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 {
-	void *start = (void *)args[0];
+	Addr start = args[0];
 	unsigned long old_len = args[1];
 	unsigned long new_len = args[2];
 //	unsigned long flags = args[3];
-	int i;
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region, tmp;
 
 	if (res._isError)
 		return;
 
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		region = &mmt_mmaps[i];
-		if (region->start == (Addr)start)
-		{
-			region->start = (Addr) res._val;
-			region->end = region->start + new_len;
-			VG_(message) (Vg_DebugMsg,
-					"changed mmap 0x%lx:0x%lx from: (address: %p, len: 0x%08lx), to: (address: %p, len: 0x%08lx), offset 0x%llx, serial %d\n",
-					region->data1, region->data2,
-					start, old_len,
-					(void *)region->start, region->end - region->start,
-					region->offset, region->id);
-			return;
-		}
-	}
+	region = mmt_bsearch(start);
+	if (!region)
+		return;
+
+	tmp = *region;
+	mmt_free_region(region);
+	region = mmt_add_region(tmp.fd, res._val, res._val + new_len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
+
+	VG_(message) (Vg_DebugMsg,
+			"changed mmap 0x%lx:0x%lx from: (address: %p, len: 0x%08lx), to: (address: %p, len: 0x%08lx), offset 0x%llx, serial %d\n",
+			region->data1, region->data2,
+			(void *)start, old_len,
+			(void *)region->start, region->end - region->start,
+			region->offset, region->id);
 }
 
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
