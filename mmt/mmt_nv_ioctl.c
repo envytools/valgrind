@@ -1,7 +1,7 @@
 /*
    Copyright (C) 2006 Dave Airlie
    Copyright (C) 2007 Wladimir J. van der Laan
-   Copyright (C) 2009 Marcin Slusarz <marcin.slusarz@gmail.com>
+   Copyright (C) 2009, 2011 Marcin Slusarz <marcin.slusarz@gmail.com>
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -67,62 +67,43 @@ void mmt_nv_ioctl_post_clo_init(void)
 static struct mmt_mmap_data *get_nvidia_mapping(Off64T offset)
 {
 	struct mmt_mmap_data *region;
-	int i;
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		region = &mmt_mmaps[i];
-		if (FD_ISSET(region->fd, &nvidia0_fds))
-			if (region->offset == offset)
-				return region;
-	}
 
-	if (mmt_last_region + 1 >= MMT_MAX_REGIONS)
-	{
-		VG_(message)(Vg_UserMsg, "no space for new mapping!\n");
-		tl_assert(0);
-		return NULL;
-	}
+	region = mmt_find_region_by_fdset_offset(&nvidia0_fds, offset);
+	if (region)
+		return region;
 
-	region = &mmt_mmaps[++mmt_last_region];
-	region->id = mmt_current_item++;
-	region->fd = 0;
-	region->offset = offset;
-	return region;
+	return mmt_add_region(0, 0, 0, offset, 0, 0, 0);
 }
 
 
 static Addr release_nvidia_mapping(Off64T offset)
 {
-	int i;
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		struct mmt_mmap_data *region = &mmt_mmaps[i];
-		if (FD_ISSET(region->fd, &nvidia0_fds))
-			if (region->offset == offset)
-			{
-				Addr addr = region->start;
-				mmt_free_region(i);
-				return addr;
-			}
-	}
-	return 0;
+	struct mmt_mmap_data *region;
+	Addr start;
+
+	region = mmt_find_region_by_fdset_offset(&nvidia0_fds, offset);
+	if (!region)
+		return 0;
+
+	start = region->start;
+	mmt_free_region(region);
+
+	return start;
 }
 
 static Addr release_nvidia_mapping2(UWord data1, UWord data2)
 {
-	int i;
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		struct mmt_mmap_data *region = &mmt_mmaps[i];
-		if (FD_ISSET(region->fd, &nvidia0_fds))
-			if (region->data1 == data1 && region->data2 == data2)
-			{
-				Addr addr = region->start;
-				mmt_free_region(i);
-				return addr;
-			}
-	}
-	return 0;
+	struct mmt_mmap_data *region;
+	Addr start;
+
+	region = mmt_find_region_by_fdset_data(&nvidia0_fds, data1, data2);
+	if (!region)
+		return 0;
+
+	start = region->start;
+	mmt_free_region(region);
+
+	return start;
 }
 
 static void dumpmem(char *s, Addr addr, UInt size)
@@ -173,38 +154,37 @@ void mmt_nv_ioctl_post_close(UWord *args)
 
 int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 {
-	void *start = (void *)args[0];
+	Addr start = args[0];
 	unsigned long len = args[1];
 //	unsigned long prot = args[2];
 //	unsigned long flags = args[3];
 	unsigned long fd = args[4];
 	unsigned long offset = args[5];
-	int i;
 	struct mmt_mmap_data *region;
+	struct mmt_mmap_data tmp;
 
-	start = (void *)res._val;
+	if (!mmt_trace_nvidia_ioctls)
+		return 0;
+	if (!FD_ISSET(fd, &nvidia0_fds))
+		return 0;
 
-	if (mmt_trace_nvidia_ioctls && FD_ISSET(fd, &nvidia0_fds))
-	{
-		for (i = 0; i <= mmt_last_region; ++i)
-		{
-			region = &mmt_mmaps[i];
-			if (region->id > 0 &&
-				(region->fd == fd || region->fd == 0) && //region->fd=0 when created from get_nvidia_mapping
-				region->offset == offset * offset_unit)
-			{
-				region->fd = fd;
-				region->start = (Addr)start;
-				region->end = (Addr)(((char *)start) + len);
-				VG_(message) (Vg_DebugMsg,
-						"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-						region->data1, region->data2, (void *)region->start, len,
-						region->offset, region->id);
-				return 1;
-			}
-		}
-	}
-	return 0;
+	region = mmt_find_region_by_fd_offset(fd, offset * offset_unit);
+	if (!region)
+		return 0;
+
+	tmp = *region;
+
+	mmt_free_region(region);
+
+	start = res._val;
+	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
+
+	VG_(message) (Vg_DebugMsg,
+			"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
+			region->data1, region->data2, (void *)region->start, len,
+			region->offset, region->id);
+
+	return 1;
 }
 
 static struct object_type {
