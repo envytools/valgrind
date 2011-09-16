@@ -30,7 +30,7 @@
 #include "pub_tool_debuginfo.h"
 #include "pub_tool_libcassert.h"
 
-//#define MMT_PRINT_FILENAMES
+#define MMT_PRINT_DATA
 
 static struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
 static int mmt_last_region = -1;
@@ -437,8 +437,6 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	return region;
 }
 
-#ifdef MMT_PRINT_FILENAMES
-#define MMT_NAMESTR_LEN 256
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
 	char filename[100];
@@ -452,182 +450,416 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 	else
 		VG_(snprintf) (namestr, len, "@%08lx", inst_addr);
 }
+
+#ifdef MMT_PRINT_DATA
+#define print_store(fmt, ...) \
+	VG_(message)(Vg_DebugMsg, "w %d:0x%04x, " fmt "\n", \
+				region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
+#define print_load(fmt, ...) \
+	VG_(message)(Vg_DebugMsg, "r %d:0x%04x, " fmt "\n", \
+				region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
 #else
-#define MMT_NAMESTR_LEN 1
-static inline void mydescribe(Addr inst_addr, char *namestr, int len)
-{
-	namestr[0] = 0;
-}
+#define print_store(fmt, ...) \
+	VG_(message)(Vg_DebugMsg, "", \
+		region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
+#define print_load(fmt, ...) \
+	VG_(message)(Vg_DebugMsg, "", \
+			region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
 #endif
 
 VG_REGPARM(2)
-void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value)
+void mmt_trace_store_1(Addr addr, UWord value)
 {
 	struct mmt_mmap_data *region;
-	char valstr[22];
-	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	switch (size)
-	{
-		case 1:
-			VG_(sprintf) (valstr, "0x%02lx", value);
-			break;
-		case 2:
-			VG_(sprintf) (valstr, "0x%04lx", value);
-			break;
-		case 4:
-			VG_(sprintf) (valstr, "0x%08lx", value);
-			break;
-#ifdef MMT_64BIT
-		case 8:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value >> 32, value & 0xffffffff);
-			break;
-#endif
-		default:
-			return;
-	}
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
-
-	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	print_store("0x%02lx ", value);
 }
 
 VG_REGPARM(2)
-void mmt_trace_store2(Addr addr, SizeT size, Addr inst_addr, UWord value1, UWord value2)
+void mmt_trace_store_1_ia(Addr addr, UWord value, Addr inst_addr)
 {
 	struct mmt_mmap_data *region;
-	char valstr[44];
-	char namestr[MMT_NAMESTR_LEN];
+	char namestr[256];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	switch (size)
-	{
-		case 4:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value1, value2);
-			break;
-#ifdef MMT_64BIT
-		case 8:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx",
-					value1 >> 32, value1 & 0xffffffff,
-					value2 >> 32, value2 & 0xffffffff);
-			break;
-#endif
-		default:
-			return;
-	}
+	mydescribe(inst_addr, namestr, 256);
 
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
-
-	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	print_store("0x%02lx %s", value, namestr);
 }
+
+VG_REGPARM(2)
+void mmt_trace_store_2(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_store("0x%04lx ", value);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_2_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%04lx %s", value, namestr);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_4(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_store("0x%08lx ", value);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_4_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx %s", value, namestr);
+}
+
+#ifdef MMT_64BIT
+VG_REGPARM(2)
+void mmt_trace_store_8(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_store("0x%08lx,0x%08lx ", value >> 32, value & 0xffffffff);
+}
+VG_REGPARM(2)
+void mmt_trace_store_8_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx,0x%08lx %s", value >> 32, value & 0xffffffff, namestr);
+}
+#endif
+
+VG_REGPARM(2)
+void mmt_trace_store_4_4(Addr addr, UWord value1, UWord value2)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_store("0x%08lx,0x%08lx ", value1, value2);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx,0x%08lx %s", value1, value2, namestr);
+}
+
+#ifdef MMT_64BIT
+VG_REGPARM(2)
+void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
+}
+VG_REGPARM(2)
+void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
+}
+#endif
 
 #ifndef MMT_64BIT
 VG_REGPARM(2)
-void mmt_trace_store4(Addr addr, Addr inst_addr, UWord value1, UWord value2, UWord value3, UWord value4)
+void mmt_trace_store_4_4_4_4(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4)
 {
 	struct mmt_mmap_data *region;
-	char valstr[44];
-	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1, value2,
+			value3, value4);
+}
+VG_REGPARM(2)
+void mmt_trace_store_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
 
-	VG_(message) (Vg_DebugMsg, "w %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1, value2,
+			value3, value4, namestr);
 }
 #endif
 
 VG_REGPARM(2)
-void mmt_trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value)
+void mmt_trace_load_1(Addr addr, UWord value)
 {
 	struct mmt_mmap_data *region;
-	char valstr[22];
-	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	switch (size)
-	{
-		case 1:
-			VG_(sprintf) (valstr, "0x%02lx", value);
-			break;
-		case 2:
-			VG_(sprintf) (valstr, "0x%04lx", value);
-			break;
-		case 4:
-			VG_(sprintf) (valstr, "0x%08lx", value);
-			break;
-#ifdef MMT_64BIT
-		case 8:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value >> 32, value & 0xffffffff);
-			break;
-#endif
-		default:
-			return;
-	}
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
-
-	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	print_load("0x%02lx ", value);
 }
 
 VG_REGPARM(2)
-void mmt_trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2)
+void mmt_trace_load_1_ia(Addr addr, UWord value, Addr inst_addr)
 {
 	struct mmt_mmap_data *region;
-	char valstr[44];
-	char namestr[MMT_NAMESTR_LEN];
+	char namestr[256];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	switch (size)
-	{
-		case 4:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx", value1, value2);
-			break;
-#ifdef MMT_64BIT
-		case 8:
-			VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx",
-					value1 >> 32, value1 & 0xffffffff,
-					value2 >> 32, value2 & 0xffffffff);
-			break;
-#endif
-		default:
-			return;
-	}
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
+	mydescribe(inst_addr, namestr, 256);
 
-	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	print_load("0x%02lx %s", value, namestr);
 }
+
+VG_REGPARM(2)
+void mmt_trace_load_2(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_load("0x%04lx ", value);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_2_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%04lx %s", value, namestr);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_4(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_load("0x%08lx ", value);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_4_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx %s", value, namestr);
+}
+
+#ifdef MMT_64BIT
+VG_REGPARM(2)
+void mmt_trace_load_8(Addr addr, UWord value)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_load("0x%08lx,0x%08lx ", value >> 32, value & 0xffffffff);
+}
+VG_REGPARM(2)
+void mmt_trace_load_8_ia(Addr addr, UWord value, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx,0x%08lx %s", value >> 32, value & 0xffffffff, namestr);
+}
+#endif
+
+VG_REGPARM(2)
+void mmt_trace_load_4_4(Addr addr, UWord value1, UWord value2)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_load("0x%08lx,0x%08lx ", value1, value2);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx,0x%08lx %s", value1, value2, namestr);
+}
+
+#ifdef MMT_64BIT
+VG_REGPARM(2)
+void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
+}
+VG_REGPARM(2)
+void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
+}
+#endif
 
 #ifndef MMT_64BIT
 VG_REGPARM(2)
-void mmt_trace_load4(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2, UWord value3, UWord value4)
+void mmt_trace_load_4_4_4_4(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4)
 {
 	struct mmt_mmap_data *region;
-	char valstr[44];
-	char namestr[MMT_NAMESTR_LEN];
 
 	region = find_mmap(addr);
 	if (likely(!region))
 		return;
 
-	VG_(sprintf) (valstr, "0x%08lx,0x%08lx,0x%08lx,0x%08lx", value1, value2, value3, value4);
-	mydescribe(inst_addr, namestr, MMT_NAMESTR_LEN);
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1, value2,
+			value3, value4);
+}
+VG_REGPARM(2)
+void mmt_trace_load_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
 
-	VG_(message) (Vg_DebugMsg, "r %d:0x%04x, %s %s\n", region->id, (unsigned int)(addr - region->start), valstr, namestr);
+	region = find_mmap(addr);
+	if (likely(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1, value2,
+			value3, value4, namestr);
 }
 #endif
 
