@@ -9,6 +9,7 @@
 #define MMT_64BIT
 #endif
 
+//#define MMT_PRINT_FILENAMES
 #define MMT_MAX_TRACE_FILES 10
 #define MMT_MAX_REGIONS 1000
 
@@ -44,25 +45,81 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs);
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs, SysRes res);
 
 VG_REGPARM(2)
-void mmt_trace_store(Addr addr, SizeT size, Addr inst_addr, UWord value);
-
+void mmt_trace_store_1(Addr addr, UWord value);
 VG_REGPARM(2)
-void mmt_trace_store2(Addr addr, SizeT size, Addr inst_addr, UWord value1, UWord value2);
-
-#ifndef MMT_64BIT
+void mmt_trace_store_1_ia(Addr addr, UWord value, Addr inst_addr);
 VG_REGPARM(2)
-void mmt_trace_store4(Addr addr, Addr inst_addr, UWord value1, UWord value2, UWord value3, UWord value4);
+void mmt_trace_store_2(Addr addr, UWord value);
+VG_REGPARM(2)
+void mmt_trace_store_2_ia(Addr addr, UWord value, Addr inst_addr);
+VG_REGPARM(2)
+void mmt_trace_store_4(Addr addr, UWord value);
+VG_REGPARM(2)
+void mmt_trace_store_4_ia(Addr addr, UWord value, Addr inst_addr);
+
+#ifdef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_store_8(Addr addr, UWord value);
+	VG_REGPARM(2)
+	void mmt_trace_store_8_ia(Addr addr, UWord value, Addr inst_addr);
 #endif
 
 VG_REGPARM(2)
-void mmt_trace_load(Addr addr, SizeT size, UInt inst_addr, UWord value);
-
+void mmt_trace_store_4_4(Addr addr, UWord value1, UWord value2);
 VG_REGPARM(2)
-void mmt_trace_load2(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2);
+void mmt_trace_store_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+
+#ifdef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2);
+	VG_REGPARM(2)
+	void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+#endif
 
 #ifndef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_store_4_4_4_4(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
+	VG_REGPARM(2)
+	void mmt_trace_store_4_4_4_4_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
+#endif
+
 VG_REGPARM(2)
-void mmt_trace_load4(Addr addr, SizeT size, UInt inst_addr, UWord value1, UWord value2, UWord value3, UWord value4);
+void mmt_trace_load_1(Addr addr, UWord value);
+VG_REGPARM(2)
+void mmt_trace_load_1_ia(Addr addr, UWord value, Addr inst_addr);
+VG_REGPARM(2)
+void mmt_trace_load_2(Addr addr, UWord value);
+VG_REGPARM(2)
+void mmt_trace_load_2_ia(Addr addr, UWord value, Addr inst_addr);
+VG_REGPARM(2)
+void mmt_trace_load_4(Addr addr, UWord value);
+VG_REGPARM(2)
+void mmt_trace_load_4_ia(Addr addr, UWord value, Addr inst_addr);
+
+#ifdef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_load_8(Addr addr, UWord value);
+	VG_REGPARM(2)
+	void mmt_trace_load_8_ia(Addr addr, UWord value, Addr inst_addr);
+#endif
+
+VG_REGPARM(2)
+void mmt_trace_load_4_4(Addr addr, UWord value1, UWord value2);
+VG_REGPARM(2)
+void mmt_trace_load_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+
+#ifdef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2);
+	VG_REGPARM(2)
+	void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+#endif
+
+#ifndef MMT_64BIT
+	VG_REGPARM(2)
+	void mmt_trace_load_4_4_4_4(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
+	VG_REGPARM(2)
+	void mmt_trace_load_4_4_4_4_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
 #endif
 
 
