@@ -57,6 +57,174 @@ static int neg_regions_number;
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 #define noinline	__attribute__((noinline))
 
+static maybe_unused void dump_state(void)
+{
+	int i;
+	if (neg_regions_number == 0)
+		VG_(printf)("NEGative cache empty\n");
+	else
+	{
+		VG_(printf)("NEG vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+		struct negative_region *reg = neg_regions;
+		for (i = 0; i < neg_regions_number; ++i, ++reg)
+			VG_(printf)("NEG <0x%016lx 0x%016lx> %16d\n", reg->start, reg->end, reg->score);
+		VG_(printf)("NEG ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+	}
+
+	if (mmt_last_region < 0)
+		VG_(printf)("POS mmap list empty\n");
+	else
+	{
+		VG_(printf)("POS vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n");
+		struct mmt_mmap_data *region = mmt_mmaps;
+		for (i = 0; i <= mmt_last_region; ++i, ++region)
+			VG_(printf)("POS %05d, id: %05d, start: 0x%016lx, end: 0x%016lx\n", i, region->id, region->start, region->end);
+		VG_(printf)("POS ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
+	}
+}
+
+static maybe_unused void __verify_state(void)
+{
+	int i, j;
+	struct negative_region *neg1 = neg_regions;
+	struct negative_region *neg2;
+	struct mmt_mmap_data *pos1, *pos2;
+
+#ifdef MMT_DEBUG_VERBOSE
+	dump_state();
+#endif
+
+	for (i = 0; i < neg_regions_number; ++i, ++neg1)
+	{
+		tl_assert2(neg1->start <= neg1->end, "%p %p", (void *)neg1->start, (void *)neg1->end);
+
+		tl_assert2(neg1->score >= 0, "score: %d", neg1->score);
+
+		/* score order */
+		if (i > 0)
+			tl_assert2(neg1->score <= neg1[-1].score, "score: %d, prev score: %d", neg1->score, neg1[-1].score);
+
+		if (neg1->end > 0 && neg1->end != (Addr)-1)
+		{
+			int found = 0;
+			pos1 = mmt_mmaps;
+			for (j = 0; j <= mmt_last_region; ++j, ++pos1)
+				if (neg1->end == pos1->start)
+				{
+					found = 1;
+					break;
+				}
+			tl_assert2(found, "end of negative region %d (<%p, %p>) does not touch start of positive region",
+					i, (void *)neg1->start, (void *)neg1->end);
+		}
+
+		if (neg1->start > 0)
+		{
+			int found = 0;
+			pos1 = mmt_mmaps;
+			for (j = 0; j <= mmt_last_region; ++j, ++pos1)
+				if (neg1->start == pos1->end)
+				{
+					found = 1;
+					break;
+				}
+			tl_assert2(found, "start of negative region %d (<%p, %p>) does not touch end of positive region",
+					i, (void *)neg1->start, (void *)neg1->end);
+		}
+
+		neg2 = neg_regions;
+		for (j = 0; j < neg_regions_number; ++j, ++neg2)
+		{
+			if (i == j)
+				continue;
+
+			/* negative regions should not be adjacent */
+			tl_assert2(neg1->start != neg2->end, "<%p, %p> <%p, %p>",
+					(void *)neg1->start, (void *)neg1->end,
+					(void *)neg2->start, (void *)neg2->end);
+			tl_assert2(neg1->end   != neg2->start, "<%p, %p> <%p, %p>",
+					(void *)neg1->start, (void *)neg1->end,
+					(void *)neg2->start, (void *)neg2->end);
+
+			/* start or end are not within other region */
+			tl_assert2(neg1->start < neg2->start || neg1->start >= neg2->end,
+					"<%p, %p> <%p, %p>",
+					(void *)neg1->start, (void *)neg1->end,
+					(void *)neg2->start, (void *)neg2->end);
+			tl_assert2(neg1->end   < neg2->start || neg1->end   >= neg2->end,
+					"<%p, %p> <%p, %p>",
+					(void *)neg1->start, (void *)neg1->end,
+					(void *)neg2->start, (void *)neg2->end);
+		}
+	}
+
+	/* negative regions after last should be empty */
+	for (i = neg_regions_number; i < NEG_REGS; ++i, ++neg1)
+		tl_assert(neg1->start == 0 && neg1->end == 0 && neg1->score == 0);
+
+	pos1 = mmt_mmaps;
+	for (i = 0; i <= mmt_last_region; ++i, ++pos1)
+	{
+		/* order */
+		tl_assert(pos1->start <= pos1->end);
+
+		/* all regions must have an id */
+		tl_assert(pos1->id > 0);
+
+		/* if it's a real region, it must have a file descriptor */
+		if (pos1->end > 0)
+			tl_assert(pos1->fd > 0);
+
+		pos2 = mmt_mmaps;
+		for (j = 0; j <= mmt_last_region; ++j, ++pos2)
+		{
+			if (i == j)
+				continue;
+
+			/* start or end are not within other region */
+			tl_assert2(pos1->start < pos2->start || pos1->start >= pos2->end,
+					"<%p, %p> <%p, %p>",
+					(void *)pos1->start, (void *)pos1->end,
+					(void *)pos2->start, (void *)pos2->end);
+			tl_assert2(pos1->end  <= pos2->start || pos1->end   >= pos2->end,
+					"<%p, %p> <%p, %p>",
+					(void *)pos1->start, (void *)pos1->end,
+					(void *)pos2->start, (void *)pos2->end);
+		}
+	}
+
+	/* positive regions after last should be empty */
+	for (i = mmt_last_region + 1; i < MMT_MAX_REGIONS; ++i, ++pos1)
+	{
+		tl_assert2(pos1->start == 0, "%p", (void *)pos1->start);
+		tl_assert2(pos1->end == 0, "%p", (void *)pos1->end);
+		tl_assert2(pos1->fd == 0, "%d", pos1->fd);
+		tl_assert2(pos1->id == 0, "%u", pos1->id);
+		tl_assert2(pos1->offset == 0, "%lld", pos1->offset);
+		tl_assert2(pos1->data1 == 0, "%lu", pos1->data1);
+		tl_assert2(pos1->data2 == 0, "%lu", pos1->data2);
+	}
+
+	if (last_used_region)
+	{
+		/* there must be at least one positive region, we are pointing at it! */
+		tl_assert(mmt_last_region >= 0);
+
+		/* within possible range */
+		tl_assert(last_used_region >= &mmt_mmaps[0]);
+		tl_assert(last_used_region <= &mmt_mmaps[mmt_last_region]);
+
+		/* it must be real region */
+		tl_assert(last_used_region->start < last_used_region->end);
+	}
+}
+static void verify_state(void)
+{
+#ifdef MMT_DEBUG
+	__verify_state();
+#endif
+}
+
 static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
 	int start = 0, end = mmt_last_region, middle;
@@ -66,6 +234,15 @@ static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 	{
 		middle = start + (end - start) / 2;
 		tmp = &mmt_mmaps[middle];
+
+#ifdef MMT_DEBUG
+		tl_assert2(start >= 0 && start <= mmt_last_region,
+				"%d %d", start, mmt_last_region);
+		tl_assert2(middle >= 0 && middle <= mmt_last_region,
+				"%d %d", middle, mmt_last_region);
+		tl_assert2(end >= 0 && end <= mmt_last_region,
+				"%d %d", end, mmt_last_region);
+#endif
 
 		if (addr < tmp->start)
 		{
@@ -80,16 +257,31 @@ static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 	}
 	*next = start;
 
+#ifdef MMT_DEBUG
+	for(start = 0; start <= mmt_last_region; ++start)
+		tl_assert2(addr < mmt_mmaps[start].start || addr >= mmt_mmaps[start].end,
+				"%p in %d<%p, %p>", (void *)addr, start, (void *)mmt_mmaps[start].start,
+				(void *)mmt_mmaps[start].end);
+	tl_assert2(*next <= mmt_last_region + 1, "*prev: %d, mmt_last_region: %d, addr: %p",
+			*next, mmt_last_region, (void *)addr);
+#endif
+
 	return NULL;
 }
 
 static void add_neg(Addr start, Addr end)
 {
+#ifdef MMT_DEBUG_VERBOSE
+	VG_(printf)("adding negative entry: <%p, %p>\n", (void *)start, (void *)end);
+#endif
+
 	if (neg_regions_number < NEG_REGS)
 		neg_regions_number++;
 	neg_regions[neg_regions_number - 1].start = start;
 	neg_regions[neg_regions_number - 1].end = end;
 	neg_regions[neg_regions_number - 1].score = 0;
+
+	verify_state();
 }
 
 /* finds region to which addr belongs to */
@@ -262,6 +454,10 @@ void mmt_free_region(struct mmt_mmap_data *m)
 	Addr end = m->end;
 	int joined = 0;
 
+#ifdef MMT_DEBUG_VERBOSE
+	VG_(printf)("freeing region: <%p, %p>\n", (void *)start, (void *)end);
+#endif
+
 	/* are we freeing region adjacent to negative region?
 	 * if yes, then extend negative region */
 	for (i = 0; i < neg_regions_number; ++i)
@@ -385,6 +581,8 @@ void mmt_free_region(struct mmt_mmap_data *m)
 			}
 		}
 	}
+
+	verify_state();
 }
 
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
@@ -392,6 +590,10 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 {
 	struct mmt_mmap_data *region;
 	int i;
+
+#ifdef MMT_DEBUG_VERBOSE
+	VG_(printf)("adding region: <%p, %p>\n", (void *)start, (void *)end);
+#endif
 
 	tl_assert2(mmt_last_region + 1 < MMT_MAX_REGIONS, "not enough space for new mmap!");
 
@@ -433,6 +635,8 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	region->offset = offset;
 	region->data1 = data1;
 	region->data2 = data2;
+
+	verify_state();
 
 	return region;
 }

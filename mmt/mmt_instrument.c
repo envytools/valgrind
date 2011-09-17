@@ -28,8 +28,6 @@
 #include "pub_tool_libcprint.h"
 #include "pub_tool_libcassert.h"
 
-#define maybe_unused __attribute__((unused))
-
 int dump_load = True, dump_store = True;
 
 static maybe_unused void
