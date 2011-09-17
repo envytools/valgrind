@@ -10,6 +10,8 @@
 #endif
 
 //#define MMT_PRINT_FILENAMES
+#define MMT_DEBUG
+//#define MMT_DEBUG_VERBOSE
 #define MMT_MAX_TRACE_FILES 10
 #define MMT_MAX_REGIONS 1000
 
@@ -27,6 +29,8 @@ struct mmt_trace_file {
 	const char *path;
 	fd_set fds;
 };
+
+#define maybe_unused __attribute__((unused))
 
 extern int mmt_trace_opens;
 extern struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
