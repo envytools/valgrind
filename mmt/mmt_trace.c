@@ -56,6 +56,7 @@ static int neg_regions_number;
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 #define noinline	__attribute__((noinline))
+#define force_inline	__attribute__((always_inline))
 
 static maybe_unused void dump_state(void)
 {
@@ -225,7 +226,7 @@ static void verify_state(void)
 #endif
 }
 
-static inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
+static force_inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 {
 	int start = 0, end = mmt_last_region, middle;
 	struct mmt_mmap_data *tmp;
@@ -336,7 +337,7 @@ static noinline void score_higher(int i)
 	while (i > 1 && curr->score > curr[-1].score);
 }
 
-static inline struct mmt_mmap_data *find_mmap(Addr addr)
+static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 {
 	struct mmt_mmap_data *region;
 	struct negative_region *neg = neg_regions;
