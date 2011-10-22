@@ -42,7 +42,8 @@ struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 
 int mmt_trace_all_files = False;
 
-static struct mmt_mmap_data *last_used_region;
+static struct mmt_mmap_data null_region;
+static struct mmt_mmap_data *last_used_region = &null_region;
 
 struct negative_region {
 	Addr start, end;
@@ -206,7 +207,7 @@ static maybe_unused void __verify_state(void)
 		tl_assert2(pos1->data2 == 0, "%lu", pos1->data2);
 	}
 
-	if (last_used_region)
+	if (last_used_region && last_used_region != &null_region)
 	{
 		/* there must be at least one positive region, we are pointing at it! */
 		tl_assert(mmt_last_region >= 0);
@@ -349,7 +350,7 @@ static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 		return NULL;
 	}
 
-	if (likely(last_used_region && addr >= last_used_region->start && addr < last_used_region->end))
+	if (likely(addr >= last_used_region->start && addr < last_used_region->end))
 		return last_used_region;
 
 	/* if score of first negative entry grew too much - divide all entries;
@@ -547,7 +548,7 @@ void mmt_free_region(struct mmt_mmap_data *m)
 	/* if we are releasing last used region, then zero cache */
 	if (m == last_used_region)
 		last_used_region = NULL;
-	else if (last_used_region > m) /* if last used region was in area which just moved */
+	else if (last_used_region > m && last_used_region != &null_region) /* if last used region was in area which just moved */
 	{
 		/* then move pointer by -1 */
 		last_used_region--;
@@ -610,7 +611,7 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 			VG_(memmove)(&mmt_mmaps[i+1], &mmt_mmaps[i],
 					(mmt_last_region - i  + 1) * sizeof(mmt_mmaps[0]));
 
-			if (last_used_region >= region)
+			if (last_used_region >= region && last_used_region != &null_region)
 				last_used_region++;
 		}
 		mmt_last_region++;
