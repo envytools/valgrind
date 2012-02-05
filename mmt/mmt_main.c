@@ -88,10 +88,10 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TF_OPT "path     trace loads and stores to memory mapped for\n"
 		"                              this file (e.g. /dev/nvidia0) (you can pass \n"
 		"                              this option multiple times)\n");
-	VG_(printf)("    " TA_OPT "     trace loads and store to memory mapped for all files\n");
-	VG_(printf)("    " TN_OPT "     trace ioctls on /dev/nvidiactl\n");
-	VG_(printf)("    " TO_OPT "     trace all 'open' syscalls\n");
-	VG_(printf)("    " TM_OPT "     send mmiotrace marks before and after ioctls\n");
+	VG_(printf)("    " TA_OPT     "     trace loads and store to memory mapped for all files\n");
+	VG_(printf)("    " TN_OPT         " trace ioctls on /dev/nvidiactl and /dev/nvidia0\n");
+	VG_(printf)("    " TO_OPT     "     trace all 'open' syscalls\n");
+	VG_(printf)("    " TM_OPT "         send mmiotrace marks before and after ioctls\n");
 }
 
 static void mmt_print_debug_usage(void)
