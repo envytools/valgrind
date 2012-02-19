@@ -54,8 +54,6 @@ struct negative_region {
 static struct negative_region neg_regions[NEG_REGS];
 static int neg_regions_number;
 
-#define likely(x)	__builtin_expect(!!(x), 1)
-#define unlikely(x)	__builtin_expect(!!(x), 0)
 #define noinline	__attribute__((noinline))
 #define force_inline	__attribute__((always_inline))
 
@@ -344,18 +342,18 @@ static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 	struct negative_region *neg = neg_regions;
 	int i;
 
-	if (likely(addr >= neg->start && addr < neg->end))
+	if (LIKELY(addr >= neg->start && addr < neg->end))
 	{
 		neg->score++;
 		return NULL;
 	}
 
-	if (likely(addr >= last_used_region->start && addr < last_used_region->end))
+	if (LIKELY(addr >= last_used_region->start && addr < last_used_region->end))
 		return last_used_region;
 
 	/* if score of first negative entry grew too much - divide all entries;
 	 * it prevents overflowing and monopoly at the top */
-	if (unlikely(neg->score > 1 << 24))
+	if (UNLIKELY(neg->score > 1 << 24))
 		for (i = 0; i < neg_regions_number; ++i)
 			neg_regions[i].score >>= 10;
 
@@ -363,11 +361,11 @@ static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 	for (i = 1; i < neg_regions_number; ++i)
 	{
 		neg++;
-		if (likely(addr >= neg->start && addr < neg->end))
+		if (LIKELY(addr >= neg->start && addr < neg->end))
 		{
 			neg->score++;
 			/* if current entry score is bigger than previous */
-			if (unlikely(neg->score > neg[-1].score))
+			if (UNLIKELY(neg->score > neg[-1].score))
 				score_higher(i); /* then swap them */
 			return NULL;
 		}
@@ -679,7 +677,7 @@ void mmt_trace_store_1(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%02lx ", value);
@@ -692,7 +690,7 @@ void mmt_trace_store_1_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -706,7 +704,7 @@ void mmt_trace_store_2(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%04lx ", value);
@@ -719,7 +717,7 @@ void mmt_trace_store_2_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -733,7 +731,7 @@ void mmt_trace_store_4(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%08lx ", value);
@@ -746,7 +744,7 @@ void mmt_trace_store_4_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -761,7 +759,7 @@ void mmt_trace_store_8(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%08lx,0x%08lx ", value >> 32, value & 0xffffffff);
@@ -773,7 +771,7 @@ void mmt_trace_store_8_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -788,7 +786,7 @@ void mmt_trace_store_4_4(Addr addr, UWord value1, UWord value2)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%08lx,0x%08lx ", value1, value2);
@@ -801,7 +799,7 @@ void mmt_trace_store_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_add
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -816,7 +814,7 @@ void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
@@ -829,7 +827,7 @@ void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_add
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -847,7 +845,7 @@ void mmt_trace_store_4_4_4_4(Addr addr, UWord value1, UWord value2,
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1, value2,
@@ -861,7 +859,7 @@ void mmt_trace_store_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -877,7 +875,7 @@ void mmt_trace_load_1(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%02lx ", value);
@@ -890,7 +888,7 @@ void mmt_trace_load_1_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -904,7 +902,7 @@ void mmt_trace_load_2(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%04lx ", value);
@@ -917,7 +915,7 @@ void mmt_trace_load_2_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -931,7 +929,7 @@ void mmt_trace_load_4(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%08lx ", value);
@@ -944,7 +942,7 @@ void mmt_trace_load_4_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -959,7 +957,7 @@ void mmt_trace_load_8(Addr addr, UWord value)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%08lx,0x%08lx ", value >> 32, value & 0xffffffff);
@@ -971,7 +969,7 @@ void mmt_trace_load_8_ia(Addr addr, UWord value, Addr inst_addr)
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -986,7 +984,7 @@ void mmt_trace_load_4_4(Addr addr, UWord value1, UWord value2)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%08lx,0x%08lx ", value1, value2);
@@ -999,7 +997,7 @@ void mmt_trace_load_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -1014,7 +1012,7 @@ void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2)
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
@@ -1027,7 +1025,7 @@ void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
@@ -1045,7 +1043,7 @@ void mmt_trace_load_4_4_4_4(Addr addr, UWord value1, UWord value2,
 	struct mmt_mmap_data *region;
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1, value2,
@@ -1059,7 +1057,7 @@ void mmt_trace_load_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 	char namestr[256];
 
 	region = find_mmap(addr);
-	if (likely(!region))
+	if (LIKELY(!region))
 		return;
 
 	mydescribe(inst_addr, namestr, 256);
