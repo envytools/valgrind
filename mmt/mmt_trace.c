@@ -23,6 +23,7 @@
 
 #include "mmt_trace.h"
 #include "mmt_nv_ioctl.h"
+#include "mmt_nouveau_ioctl.h"
 
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcprint.h"
@@ -1070,7 +1071,10 @@ void mmt_trace_load_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 {
 	if (syscallno == __NR_ioctl)
+	{
 		mmt_nv_ioctl_pre(args);
+		mmt_nouveau_ioctl_pre(args);
+	}
 }
 
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -1102,6 +1106,7 @@ static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	}
 
 	mmt_nv_ioctl_post_open(args, res);
+	mmt_nouveau_ioctl_post_open(args, res);
 }
 
 static void post_close(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -1120,6 +1125,7 @@ static void post_close(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 		}
 
 	mmt_nv_ioctl_post_close(args);
+	mmt_nouveau_ioctl_post_close(args);
 }
 
 static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int offset_unit)
@@ -1216,7 +1222,10 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 			UInt nArgs, SysRes res)
 {
 	if (syscallno == __NR_ioctl)
+	{
 		mmt_nv_ioctl_post(args);
+		mmt_nouveau_ioctl_post(args);
+	}
 	else if (syscallno == __NR_open)
 		post_open(tid, args, nArgs, res);
 	else if (syscallno == __NR_close)
