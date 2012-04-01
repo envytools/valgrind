@@ -33,6 +33,7 @@
 #include "pub_tool_mallocfree.h"
 
 #include "mmt_nv_ioctl.h"
+#include "mmt_nouveau_ioctl.h"
 #include "mmt_instrument.h"
 #include "mmt_trace.h"
 
@@ -41,6 +42,7 @@
 #define TO_OPT "--mmt-trace-all-opens"
 #define TA_OPT "--mmt-trace-all-files"
 #define TM_OPT "--mmt-trace-marks"
+#define TV_OPT "--mmt-trace-nouveau-ioctls"
 
 static Bool mmt_process_cmd_line_option(Char * arg)
 {
@@ -79,6 +81,11 @@ static Bool mmt_process_cmd_line_option(Char * arg)
 		mmt_trace_marks = True;
 		return True;
 	}
+	else if (VG_(strcmp)(arg, TV_OPT) == 0)
+	{
+		mmt_trace_nouveau_ioctls = True;
+		return True;
+	}
 
 	return False;
 }
@@ -89,7 +96,8 @@ static void mmt_print_usage(void)
 		"                              this file (e.g. /dev/nvidia0) (you can pass \n"
 		"                              this option multiple times)\n");
 	VG_(printf)("    " TA_OPT     "     trace loads and store to memory mapped for all files\n");
-	VG_(printf)("    " TN_OPT         " trace ioctls on /dev/nvidiactl and /dev/nvidia0\n");
+	VG_(printf)("    " TN_OPT         " trace nvidia ioctls on /dev/nvidiactl and /dev/nvidia0\n");
+	VG_(printf)("    " TV_OPT      "    trace nouveau ioctls on /dev/dri/cardX\n");
 	VG_(printf)("    " TO_OPT     "     trace all 'open' syscalls\n");
 	VG_(printf)("    " TM_OPT "         send mmiotrace marks before and after ioctls\n");
 }
@@ -130,6 +138,7 @@ static void mmt_pre_clo_init(void)
 		FD_ZERO(&mmt_trace_files[i].fds);
 
 	mmt_nv_ioctl_pre_clo_init();
+	mmt_nouveau_ioctl_pre_clo_init();
 }
 
 VG_DETERMINE_INTERFACE_VERSION(mmt_pre_clo_init)
