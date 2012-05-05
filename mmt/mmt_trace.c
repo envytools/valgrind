@@ -546,7 +546,7 @@ void mmt_free_region(struct mmt_mmap_data *m)
 
 	/* if we are releasing last used region, then zero cache */
 	if (m == last_used_region)
-		last_used_region = NULL;
+		last_used_region = &null_region;
 	else if (last_used_region > m && last_used_region != &null_region) /* if last used region was in area which just moved */
 	{
 		/* then move pointer by -1 */
