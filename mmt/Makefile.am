@@ -5,6 +5,9 @@ if VGCONF_HAVE_PLATFORM_SEC
 noinst_PROGRAMS += mmt-@VGCONF_ARCH_SEC@-@VGCONF_OS@
 endif
 
+# _FORTIFY_SOURCE enables some checks which depend on glibc for linking
+CFLAGS += -U_FORTIFY_SOURCE
+
 MMT_SOURCES_COMMON = mmt_main.c mmt_nv_ioctl.c mmt_instrument.c mmt_trace.c \
 			mmt_nouveau_ioctl.c
 
