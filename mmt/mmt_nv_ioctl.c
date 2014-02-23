@@ -386,6 +386,24 @@ void mmt_nv_ioctl_pre(UWord *args)
 				UInt *addr2 = (*(UInt **) (&data[4]));
 				dumpmem("in2 ", addr2[2], 0x3c);
 			}
+         else if (data[2] == 0x20800122)
+         {
+            UInt k;
+            UInt *in = (UInt *)mmt_2x4to8(data[5], data[4]);
+            UInt cnt = in[5];
+            UInt *tx = (UInt *)mmt_2x4to8(in[7], in[6]);
+            VG_(message) (Vg_DebugMsg, "<==(%u at %p)\n", cnt, tx);
+            for (k = 0; k < cnt; ++k)
+               VG_(message) (Vg_DebugMsg, "REQUEST: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
+                             tx[k * 8 + 0],
+                             tx[k * 8 + 3],
+                             tx[k * 8 + 5],
+                             tx[k * 8 + 7],
+                             tx[k * 8 + 1],
+                             tx[k * 8 + 2],
+                             tx[k * 8 + 4],
+                             tx[k * 8 + 6]);
+         }
 			break;
 
 		case 0xc040464d:
@@ -565,6 +583,23 @@ void mmt_nv_ioctl_post(UWord *args)
 				UInt *addr2 = (*(UInt **) (&data[4]));
 				dumpmem("out2 ", addr2[2], 0x3c);
 			}
+         else if (data[2] == 0x20800122)
+         {
+            UInt *out = (UInt *)mmt_2x4to8(data[5], data[4]);
+            UInt cnt = out[5];
+            UInt *tx = (UInt *)mmt_2x4to8(out[7], out[6]);
+            UInt k;
+            for (k = 0; k < cnt; ++k)
+               VG_(message) (Vg_DebugMsg, "RETURND: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
+                             tx[k * 8 + 0],
+                             tx[k * 8 + 3],
+                             tx[k * 8 + 5],
+                             tx[k * 8 + 7],
+                             tx[k * 8 + 1],
+                             tx[k * 8 + 2],
+                             tx[k * 8 + 4],
+                             tx[k * 8 + 6]);
+         }
 			break;
 			// 0x37 read configuration parameter
 		case 0xc0204638:
