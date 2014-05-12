@@ -115,7 +115,6 @@ __add_trace_load2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
-#ifndef MMT_64BIT
 static maybe_unused void
 __add_trace_load4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2, IRExpr *val3, IRExpr *val4)
 {
@@ -123,9 +122,13 @@ __add_trace_load4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *v
 	IRDirty *di;
 
 	argv = mkIRExprVec_6(addr, val1, val2, val3, val4, mkIRExpr_HWord(inst_addr));
-
+#ifndef MMT_64BIT
 	if (size == 4)
 		di = unsafeIRDirty_0_N(2, "trace_load_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4_4_4_4_ia), argv);
+#else
+	if (size == 8)
+		di = unsafeIRDirty_0_N(2, "trace_load_8_8_8_8", VG_(fnptr_to_fnentry) (mmt_trace_load_8_8_8_8_ia), argv);
+#endif
 	else
 		tl_assert(0);
 
@@ -139,14 +142,18 @@ __add_trace_load4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1
 
 	argv = mkIRExprVec_5(addr, val1, val2, val3, val4);
 
+#ifndef MMT_64BIT
 	if (size == 4)
 		di = unsafeIRDirty_0_N(2, "trace_load_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4_4_4_4), argv);
+#else
+	if (size == 8)
+		di = unsafeIRDirty_0_N(2, "trace_load_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_load_8_8_8_8), argv);
+#endif
 	else
 		tl_assert(0);
 
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
-#endif
 
 #ifdef MMT_PRINT_FILENAMES
 #define add_trace_load1 __add_trace_load1_ia
@@ -163,7 +170,7 @@ static void add_trace_load(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRE
 {
 	IRTemp t;
 	IRStmt *cast;
-	IRExpr *data1, *data2;
+	IRExpr *data1, *data2, *data3, *data4;
 
 	switch (arg_ty)
 	{
@@ -232,6 +239,34 @@ static void add_trace_load(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRE
 			data2 = IRExpr_RdTmp(t);
 
 			add_trace_load2(bb, addr, sizeofIRType(Ity_I64), inst_addr, data1, data2);
+			break;
+
+		case Ity_V256:
+			// 192
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_3, data));
+			addStmtToIRSB(bb, cast);
+			data1 = IRExpr_RdTmp(t);
+
+			// 128
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_2, data));
+			addStmtToIRSB(bb, cast);
+			data2 = IRExpr_RdTmp(t);
+
+			// 64
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_1, data));
+			addStmtToIRSB(bb, cast);
+			data3 = IRExpr_RdTmp(t);
+
+			// 0
+			t = newIRTemp(bb->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_0, data));
+			addStmtToIRSB(bb, cast);
+			data4 = IRExpr_RdTmp(t);
+
+			add_trace_load4(bb, addr, sizeofIRType(Ity_I64), inst_addr, data1, data2, data3, data4);
 			break;
 		default:
 			VG_(message) (Vg_UserMsg, "Warning! we missed a read of 0x%08x\n", (UInt) arg_ty);
@@ -443,7 +478,6 @@ __add_trace_store2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
-#ifndef MMT_64BIT
 static maybe_unused void
 __add_trace_store4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 		IRExpr *data1, IRExpr *data2, IRExpr *data3, IRExpr *data4)
@@ -453,8 +487,13 @@ __add_trace_store4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 
 	argv = mkIRExprVec_6(addr, data1, data2, data3, data4, mkIRExpr_HWord(inst_addr));
 
+#ifndef MMT_64BIT
 	if (size == 4)
 		di = unsafeIRDirty_0_N(2, "trace_store_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4_4_4_ia), argv);
+#else
+	if (size == 8)
+		di = unsafeIRDirty_0_N(2, "trace_store_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8_8_8_ia), argv);
+#endif
 	else
 		tl_assert(0);
 
@@ -469,14 +508,18 @@ __add_trace_store4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 
 	argv = mkIRExprVec_5(addr, data1, data2, data3, data4);
 
+#ifndef MMT_64BIT
 	if (size == 4)
 		di = unsafeIRDirty_0_N(2, "trace_store_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4_4_4), argv);
+#else
+	if (size == 8)
+		di = unsafeIRDirty_0_N(2, "trace_store_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8_8_8), argv);
+#endif
 	else
 		tl_assert(0);
 
 	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
-#endif
 
 #ifdef MMT_PRINT_FILENAMES
 #define add_trace_store1 __add_trace_store1_ia
@@ -494,7 +537,7 @@ static void add_trace_store(IRSB *bbOut, IRExpr *destAddr, Addr inst_addr,
 {
 	IRTemp t = IRTemp_INVALID;
 	IRStmt *cast = NULL;
-	IRExpr *data_expr1, *data_expr2;
+	IRExpr *data_expr1, *data_expr2, *data_expr3, *data_expr4;
 
 	Int size = sizeofIRType(arg_ty);
 
@@ -566,6 +609,35 @@ static void add_trace_store(IRSB *bbOut, IRExpr *destAddr, Addr inst_addr,
 					data_expr1, data_expr2);
 
 			break;
+
+		case Ity_V256:
+			t = newIRTemp(bbOut->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_3, data_expr));
+			addStmtToIRSB(bbOut, cast);
+			data_expr1 = IRExpr_RdTmp(t);
+
+			// 128
+			t = newIRTemp(bbOut->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_2, data_expr));
+			addStmtToIRSB(bbOut, cast);
+			data_expr2 = IRExpr_RdTmp(t);
+
+			// 64
+			t = newIRTemp(bbOut->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_1, data_expr));
+			addStmtToIRSB(bbOut, cast);
+			data_expr3 = IRExpr_RdTmp(t);
+
+			// 0
+			t = newIRTemp(bbOut->tyenv, Ity_I64);
+			cast = IRStmt_WrTmp(t, IRExpr_Unop(Iop_V256to64_0, data_expr));
+			addStmtToIRSB(bbOut, cast);
+			data_expr4 = IRExpr_RdTmp(t);
+
+			add_trace_store4(bbOut, destAddr, sizeofIRType(Ity_I64), inst_addr,
+					data_expr1, data_expr2, data_expr3, data_expr4);
+			break;
+
 		default:
 			VG_(message) (Vg_UserMsg, "Warning! we missed a write of 0x%08x\n", (UInt) arg_ty);
 			break;
