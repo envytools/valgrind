@@ -78,6 +78,10 @@ void mmt_trace_store_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_add
 	void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2);
 	VG_REGPARM(2)
 	void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+	VG_REGPARM(2)
+	void mmt_trace_store_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
+	VG_REGPARM(2)
+	void mmt_trace_store_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
 #endif
 
 #ifndef MMT_64BIT
@@ -117,6 +121,10 @@ void mmt_trace_load_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr
 	void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2);
 	VG_REGPARM(2)
 	void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+	VG_REGPARM(2)
+	void mmt_trace_load_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
+	VG_REGPARM(2)
+	void mmt_trace_load_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
 #endif
 
 #ifndef MMT_64BIT
