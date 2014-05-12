@@ -822,6 +822,7 @@ void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2)
 	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
 			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
 }
+
 VG_REGPARM(2)
 void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
@@ -834,6 +835,43 @@ void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_add
 
 	mydescribe(inst_addr, namestr, 256);
 
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_8_8_8_8(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (LIKELY(!region))
+		return;
+
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value3 >> 32,
+			value3 & 0xffffffff, value4 >> 32, value4 & 0xffffffff);
+	addr += 0x10;
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
+}
+
+VG_REGPARM(2)
+void mmt_trace_store_8_8_8_8_ia(Addr addr, UWord value1, UWord value2,
+		UWord value3, UWord value4, UWord inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (LIKELY(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value3 >> 32,
+			value3 & 0xffffffff, value4 >> 32, value4 & 0xffffffff, namestr);
+	addr += 0x10;
 	print_store("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
 			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
 }
@@ -1020,6 +1058,7 @@ void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2)
 	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
 			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
 }
+
 VG_REGPARM(2)
 void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
@@ -1032,6 +1071,41 @@ void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr
 
 	mydescribe(inst_addr, namestr, 256);
 
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4)
+{
+	struct mmt_mmap_data *region;
+
+	region = find_mmap(addr);
+	if (LIKELY(!region))
+		return;
+
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value3 >> 32,
+			value3 & 0xffffffff, value4 >> 32, value4 & 0xffffffff);
+	addr += 0x10;
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value1 >> 32,
+			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff);
+}
+
+VG_REGPARM(2)
+void mmt_trace_load_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr)
+{
+	struct mmt_mmap_data *region;
+	char namestr[256];
+
+	region = find_mmap(addr);
+	if (LIKELY(!region))
+		return;
+
+	mydescribe(inst_addr, namestr, 256);
+
+	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx ", value3 >> 32,
+			value3 & 0xffffffff, value4 >> 32, value4 & 0xffffffff);
+	addr += 0x10;
 	print_load("0x%08lx,0x%08lx,0x%08lx,0x%08lx %s", value1 >> 32,
 			value1 & 0xffffffff, value2 >> 32, value2 & 0xffffffff, namestr);
 }
