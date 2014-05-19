@@ -22,7 +22,7 @@
 #include "mmt_nouveau_ioctl.h"
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcprint.h"
-#include "vki/vki-linux.h"
+#include "vki-linux-drm-nouveau.h"
 
 #include <sys/select.h>
 
