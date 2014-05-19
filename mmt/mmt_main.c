@@ -44,7 +44,7 @@
 #define TM_OPT "--mmt-trace-marks"
 #define TV_OPT "--mmt-trace-nouveau-ioctls"
 
-static Bool mmt_process_cmd_line_option(Char * arg)
+static Bool mmt_process_cmd_line_option(const HChar *arg)
 {
 //	VG_(printf)("arg: %s\n", arg);
 	if (VG_(strncmp)(arg, TF_OPT, VG_(strlen(TF_OPT))) == 0)
