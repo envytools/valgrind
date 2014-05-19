@@ -106,7 +106,7 @@ static Addr release_nvidia_mapping2(UWord data1, UWord data2)
 	return start;
 }
 
-static void dumpmem(char *s, Addr addr, UInt size)
+static void dumpmem(const char *s, Addr addr, UInt size)
 {
 	char line[4096];
 	int idx = 0;
@@ -189,7 +189,7 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 
 static struct object_type {
 	UInt id;		// type id
-	char *name;		// some name
+	const char *name;		// some name
 	UInt cargs;		// number of constructor args (uint32)
 } object_types[] =
 {
@@ -431,7 +431,7 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case 0xc020462b:
 		{
 			struct object_type *objtype;
-			char *name = "???";
+			const char *name = "???";
 			obj1 = data[1];
 			obj2 = data[2];
 			addr = data[3];
