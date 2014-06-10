@@ -48,91 +48,32 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs);
 
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs, SysRes res);
 
-VG_REGPARM(2)
-void mmt_trace_store_1(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_store_1_ia(Addr addr, UWord value, Addr inst_addr);
-VG_REGPARM(2)
-void mmt_trace_store_2(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_store_2_ia(Addr addr, UWord value, Addr inst_addr);
-VG_REGPARM(2)
-void mmt_trace_store_4(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_store_4_ia(Addr addr, UWord value, Addr inst_addr);
+struct mmt_mmap_data *__find_mmap_slow(Addr addr);
 
-#ifdef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_store_8(Addr addr, UWord value);
-	VG_REGPARM(2)
-	void mmt_trace_store_8_ia(Addr addr, UWord value, Addr inst_addr);
-#endif
+#define force_inline	inline __attribute__((always_inline))
 
-VG_REGPARM(2)
-void mmt_trace_store_4_4(Addr addr, UWord value1, UWord value2);
-VG_REGPARM(2)
-void mmt_trace_store_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
+struct negative_region {
+	Addr start, end;
+	int score;
+};
 
-#ifdef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_store_8_8(Addr addr, UWord value1, UWord value2);
-	VG_REGPARM(2)
-	void mmt_trace_store_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
-	VG_REGPARM(2)
-	void mmt_trace_store_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
-	VG_REGPARM(2)
-	void mmt_trace_store_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
-#endif
+extern struct negative_region neg_regions[];
+extern struct mmt_mmap_data *last_used_region;
 
-#ifndef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_store_4_4_4_4(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
-	VG_REGPARM(2)
-	void mmt_trace_store_4_4_4_4_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
-#endif
+static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
+{
+	struct negative_region *neg = neg_regions;
 
-VG_REGPARM(2)
-void mmt_trace_load_1(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_load_1_ia(Addr addr, UWord value, Addr inst_addr);
-VG_REGPARM(2)
-void mmt_trace_load_2(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_load_2_ia(Addr addr, UWord value, Addr inst_addr);
-VG_REGPARM(2)
-void mmt_trace_load_4(Addr addr, UWord value);
-VG_REGPARM(2)
-void mmt_trace_load_4_ia(Addr addr, UWord value, Addr inst_addr);
+	if (LIKELY(addr >= neg->start && addr < neg->end))
+	{
+		neg->score++;
+		return NULL;
+	}
 
-#ifdef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_load_8(Addr addr, UWord value);
-	VG_REGPARM(2)
-	void mmt_trace_load_8_ia(Addr addr, UWord value, Addr inst_addr);
-#endif
+	if (LIKELY(addr >= last_used_region->start && addr < last_used_region->end))
+		return last_used_region;
 
-VG_REGPARM(2)
-void mmt_trace_load_4_4(Addr addr, UWord value1, UWord value2);
-VG_REGPARM(2)
-void mmt_trace_load_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
-
-#ifdef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_load_8_8(Addr addr, UWord value1, UWord value2);
-	VG_REGPARM(2)
-	void mmt_trace_load_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr);
-	VG_REGPARM(2)
-	void mmt_trace_load_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
-	VG_REGPARM(2)
-	void mmt_trace_load_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
-#endif
-
-#ifndef MMT_64BIT
-	VG_REGPARM(2)
-	void mmt_trace_load_4_4_4_4(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4);
-	VG_REGPARM(2)
-	void mmt_trace_load_4_4_4_4_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
-#endif
-
+	return __find_mmap_slow(addr);
+}
 
 #endif /* MMT_TRACE_H_ */
