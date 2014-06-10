@@ -23,6 +23,7 @@
 
 #include "mmt_instrument.h"
 #include "mmt_trace.h"
+#include "mmt_trace_text.h"
 
 #include "pub_tool_machine.h"
 #include "pub_tool_libcprint.h"
