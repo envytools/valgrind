@@ -9,7 +9,7 @@ endif
 CFLAGS += -U_FORTIFY_SOURCE
 
 MMT_SOURCES_COMMON = mmt_main.c mmt_nv_ioctl.c mmt_instrument.c mmt_trace.c \
-			mmt_nouveau_ioctl.c
+			mmt_nouveau_ioctl.c mmt_trace_text.c
 
 mmt_@VGCONF_ARCH_PRI@_@VGCONF_OS@_SOURCES      = \
 	$(MMT_SOURCES_COMMON)
