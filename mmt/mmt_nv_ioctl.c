@@ -1,7 +1,7 @@
 /*
    Copyright (C) 2006 Dave Airlie
    Copyright (C) 2007 Wladimir J. van der Laan
-   Copyright (C) 2009, 2011 Marcin Slusarz <marcin.slusarz@gmail.com>
+   Copyright (C) 2009, 2011, 2014 Marcin Slusarz <marcin.slusarz@gmail.com>
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -22,6 +22,7 @@
 */
 #include "mmt_nv_ioctl.h"
 #include "mmt_trace.h"
+#include "mmt_trace_bin.h"
 #include "pub_tool_vki.h"
 #include "pub_tool_libcprint.h"
 #include "pub_tool_libcfile.h"
@@ -39,6 +40,30 @@ int mmt_trace_marks = False;
 static int trace_mark_fd;
 static int trace_mark_cnt = 0;
 
+/*
+ * Binary format message subtypes:
+ *     a = allocate map
+ *     b = bind
+ *     c = create object
+ *     d = destroy object
+ *     e = deallocate map
+ *     g = gpu map
+ *     h = gpu unmap
+ *     i = ioctl before
+ *     j = ioctl after
+ *     k = mark (mmiotrace)
+ *     l = call method
+ *     m = mmap
+ *     o = memory dump
+ *     p = create mapped object
+ *     r = create driver object
+ *     t = create dma object
+ *     v = create device object
+ *     x = create context object
+ *     1 = call method data
+ *     4 = ioctl 4d
+ *
+ */
 static inline unsigned long long mmt_2x4to8(UInt h, UInt l)
 {
 	return (((unsigned long long)h) << 32) | l;
@@ -113,19 +138,43 @@ static void dumpmem(const char *s, Addr addr, UInt size)
 	line[0] = 0;
 
 	UInt i;
-	if (!addr || (addr & 0xffff0000) == 0xbeef0000)
-		return;
-
-	size = size / 4;
-
-	for (i = 0; i < size; ++i)
+	if (mmt_binary_output)
 	{
-		if (idx + 11 >= 4095)
-			break;
-		VG_(sprintf) (line + idx, "0x%08x ", ((UInt *) addr)[i]);
-		idx += 11;
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('o');
+		mmt_bin_write_8(addr);
 	}
-	VG_(message) (Vg_DebugMsg, "%s%s\n", s, line);
+
+	if (!addr || (addr & 0xffff0000) == 0xbeef0000)
+	{
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_str("");
+			mmt_bin_write_buffer((UChar *)"", 0);
+			mmt_bin_end();
+		}
+		return;
+	}
+
+	if (mmt_binary_output)
+	{
+		mmt_bin_write_str(s);
+		mmt_bin_write_buffer((UChar *)addr, size);
+		mmt_bin_end();
+	}
+	else
+	{
+		size = size / 4;
+
+		for (i = 0; i < size; ++i)
+		{
+			if (idx + 11 >= 4095)
+				break;
+			VG_(sprintf) (line + idx, "0x%08x ", ((UInt *) addr)[i]);
+			idx += 11;
+		}
+		VG_(message) (Vg_DebugMsg, "%s%s\n", s, line);
+	}
 }
 
 void mmt_nv_ioctl_post_open(UWord *args, SysRes res)
@@ -179,10 +228,23 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	start = res._val;
 	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
 
-	VG_(message) (Vg_DebugMsg,
-			"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-			region->data1, region->data2, (void *)region->start, len,
-			region->offset, region->id);
+	if (mmt_binary_output)
+	{
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('m');
+		mmt_bin_write_8(region->offset);
+		mmt_bin_write_4(region->id);
+		mmt_bin_write_8(region->start);
+		mmt_bin_write_8(len);
+		mmt_bin_write_8(region->data1);
+		mmt_bin_write_8(region->data2);
+		mmt_bin_end();
+	}
+	else
+		VG_(message) (Vg_DebugMsg,
+				"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
+				region->data1, region->data2, (void *)region->start, len,
+				region->offset, region->id);
 
 	return 1;
 }
@@ -320,26 +382,46 @@ void mmt_nv_ioctl_pre(UWord *args)
 		char buf[50];
 		VG_(snprintf)(buf, 50, "VG-%d-%d-PRE\n", VG_(getpid)(), trace_mark_cnt);
 		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
-		VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('k');
+			mmt_bin_write_str(buf);
+			mmt_bin_end();
+		}
+		else
+			VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
 	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
-		char line[4096];
-		int idx = 0;
-
-		size = ((id & 0x3FFF0000) >> 16) / 4;
-		VG_(sprintf) (line, "pre_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-		idx = VG_(strlen(line));
-
-		for (i = 0; i < size; ++i)
+		size = (id & 0x3FFF0000) >> 16;
+		if (mmt_binary_output)
 		{
-			if (idx + 11 >= 4095)
-				break;
-			VG_(sprintf) (line + idx, "0x%08x ", data[i]);
-			idx += 11;
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('i');
+			mmt_bin_write_4(fd);
+			mmt_bin_write_4(id);
+			mmt_bin_write_buffer((UChar *)data, size);
+			mmt_bin_end();
 		}
-		VG_(message) (Vg_DebugMsg, "%s\n", line);
+		else
+		{
+			char line[4096];
+			int idx = 0;
+
+			VG_(sprintf) (line, "pre_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
+			idx = VG_(strlen(line));
+
+			for (i = 0; i < size / 4; ++i)
+			{
+				if (idx + 11 >= 4095)
+					break;
+				VG_(sprintf) (line + idx, "0x%08x ", data[i]);
+				idx += 11;
+			}
+			VG_(message) (Vg_DebugMsg, "%s\n", line);
+		}
 	}
 	else
 		VG_(message)(Vg_DebugMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
@@ -351,7 +433,16 @@ void mmt_nv_ioctl_pre(UWord *args)
 		// c1d0004a beef0003 000000ff 00000000 04fe8af8 00000000 00000000 00000000
 		case 0xc0204623:
 			obj1 = data[1];
-			VG_(message) (Vg_DebugMsg, "create device object 0x%08x\n", obj1);
+
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('v');
+				mmt_bin_write_4(obj1);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "create device object 0x%08x\n", obj1);
 
 			// argument can be a string (7:0, indicating the bus number), but only if
 			// argument is 0xff
@@ -376,7 +467,17 @@ void mmt_nv_ioctl_pre(UWord *args)
 		}
 #endif
 		case 0xc020462a:
-			VG_(message) (Vg_DebugMsg, "call method 0x%08x:0x%08x\n", data[1], data[2]);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('l');
+				mmt_bin_write_4(data[1]);
+				mmt_bin_write_4(data[2]);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "call method 0x%08x:0x%08x\n", data[1], data[2]);
+
 			dumpmem("in ", mmt_2x4to8(data[5], data[4]), mmt_2x4to8(data[7], data[6]));
 			// 0x10000002
 			// word 2 is an address
@@ -386,28 +487,50 @@ void mmt_nv_ioctl_pre(UWord *args)
 				UInt *addr2 = (*(UInt **) (&data[4]));
 				dumpmem("in2 ", addr2[2], 0x3c);
 			}
-         else if (data[2] == 0x20800122)
-         {
-            UInt k;
-            UInt *in = (UInt *)mmt_2x4to8(data[5], data[4]);
-            UInt cnt = in[5];
-            UInt *tx = (UInt *)mmt_2x4to8(in[7], in[6]);
-            VG_(message) (Vg_DebugMsg, "<==(%u at %p)\n", cnt, tx);
-            for (k = 0; k < cnt; ++k)
-               VG_(message) (Vg_DebugMsg, "REQUEST: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
-                             tx[k * 8 + 0],
-                             tx[k * 8 + 3],
-                             tx[k * 8 + 5],
-                             tx[k * 8 + 7],
-                             tx[k * 8 + 1],
-                             tx[k * 8 + 2],
-                             tx[k * 8 + 4],
-                             tx[k * 8 + 6]);
-         }
+			else if (data[2] == 0x20800122)
+			{
+				UInt k;
+				UInt *in = (UInt *)mmt_2x4to8(data[5], data[4]);
+				UInt cnt = in[5];
+				UInt *tx = (UInt *)mmt_2x4to8(in[7], in[6]);
+				if (mmt_binary_output)
+				{
+					mmt_bin_write_1('n');
+					mmt_bin_write_1('1');
+					mmt_bin_write_4(cnt);
+					mmt_bin_write_8((ULong)tx);
+					mmt_bin_write_buffer((UChar *)tx, cnt * 8 * 4);
+					mmt_bin_end();
+				}
+				else
+				{
+					VG_(message) (Vg_DebugMsg, "<==(%u at %p)\n", cnt, tx);
+
+					for (k = 0; k < cnt; ++k)
+						VG_(message) (Vg_DebugMsg, "REQUEST: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
+									tx[k * 8 + 0],
+									tx[k * 8 + 3],
+									tx[k * 8 + 5],
+									tx[k * 8 + 7],
+									tx[k * 8 + 1],
+									tx[k * 8 + 2],
+									tx[k * 8 + 4],
+									tx[k * 8 + 6]);
+				}
+			}
+
 			break;
 
 		case 0xc040464d:
-			VG_(message) (Vg_DebugMsg, "in %s\n", *(char **) (&data[6]));
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('4');
+				mmt_bin_write_str(*(char **) (&data[6]));
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "in %s\n", *(char **) (&data[6]));
 			break;
 		case 0xc028465e:
 		{
@@ -426,7 +549,16 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case 0xc0104629:
 			obj1 = data[1];
 			obj2 = data[2];
-			VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", obj1, obj2);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('d');
+				mmt_bin_write_4(obj1);
+				mmt_bin_write_4(obj2);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", obj1, obj2);
 			break;
 		case 0xc020462b:
 		{
@@ -438,9 +570,24 @@ void mmt_nv_ioctl_pre(UWord *args)
 			objtype = find_objtype(addr);
 			if (objtype && objtype->name)
 				name = objtype->name;
-			VG_(message) (Vg_DebugMsg,
-					"create gpu object 0x%08x:0x%08x type 0x%04lx (%s)\n",
-					obj1, obj2, addr, name);
+
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('c');
+				mmt_bin_write_4(obj1);
+				mmt_bin_write_4(obj2);
+				mmt_bin_write_4(addr);
+				mmt_bin_write_str(name);
+				mmt_bin_end();
+			}
+			else
+			{
+				VG_(message) (Vg_DebugMsg,
+						"create gpu object 0x%08x:0x%08x type 0x%04lx (%s)\n",
+						obj1, obj2, addr, name);
+			}
+
 			if (data[4])
 			{
 				if (objtype)
@@ -455,8 +602,18 @@ void mmt_nv_ioctl_pre(UWord *args)
 			obj1 = data[1];
 			obj2 = data[2];
 			addr = data[3];
-			VG_(message) (Vg_DebugMsg,
-					"create driver object 0x%08x:0x%08x type 0x%04lx\n", obj1, obj2, addr);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('r');
+				mmt_bin_write_4(obj1);
+				mmt_bin_write_4(obj2);
+				mmt_bin_write_8(addr);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg,
+						"create driver object 0x%08x:0x%08x type 0x%04lx\n", obj1, obj2, addr);
 			break;
 
 	}
@@ -479,26 +636,47 @@ void mmt_nv_ioctl_post(UWord *args)
 		char buf[50];
 		VG_(snprintf)(buf, 50, "VG-%d-%d-POST\n", VG_(getpid)(), trace_mark_cnt++);
 		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
-		VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('k');
+			mmt_bin_write_str(buf);
+			mmt_bin_end();
+		}
+		else
+			VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
 	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
-		char line[4096];
-		int idx = 0;
+		size = (id & 0x3FFF0000) >> 16;
 
-		size = ((id & 0x3FFF0000) >> 16) / 4;
-		VG_(sprintf) (line, "post_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-		idx = VG_(strlen(line));
-
-		for (i = 0; i < size; ++i)
+		if (mmt_binary_output)
 		{
-			if (idx + 11 >= 4095)
-				break;
-			VG_(sprintf) (line + idx, "0x%08x ", data[i]);
-			idx += 11;
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('j');
+			mmt_bin_write_4(fd);
+			mmt_bin_write_4(id);
+			mmt_bin_write_buffer((UChar *)data, size);
+			mmt_bin_end();
 		}
-		VG_(message) (Vg_DebugMsg, "%s\n", line);
+		else
+		{
+			char line[4096];
+			int idx = 0;
+
+			VG_(sprintf) (line, "post_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
+			idx = VG_(strlen(line));
+
+			for (i = 0; i < size / 4; ++i)
+			{
+				if (idx + 11 >= 4095)
+					break;
+				VG_(sprintf) (line + idx, "0x%08x ", data[i]);
+				idx += 11;
+			}
+			VG_(message) (Vg_DebugMsg, "%s\n", line);
+		}
 	}
 	else
 		VG_(message)(Vg_DebugMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
@@ -508,7 +686,15 @@ void mmt_nv_ioctl_post(UWord *args)
 		// NVIDIA
 		case 0xc00c4622:		// Initialize
 			obj1 = data[0];
-			VG_(message) (Vg_DebugMsg, "created context object 0x%08x\n", obj1);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('x');
+				mmt_bin_write_4(obj1);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "created context object 0x%08x\n", obj1);
 			break;
 
 		case 0xc0204623:
@@ -519,7 +705,18 @@ void mmt_nv_ioctl_post(UWord *args)
 			obj1 = data[1];
 			obj2 = data[2];
 			addr = data[8];
-			VG_(message) (Vg_DebugMsg, "allocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
+
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('a');
+				mmt_bin_write_4(obj1);
+				mmt_bin_write_4(obj2);
+				mmt_bin_write_8(addr);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "allocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
 
 			region = get_nvidia_mapping(addr);
 			if (region)
@@ -536,7 +733,19 @@ void mmt_nv_ioctl_post(UWord *args)
 			/// XXX some currently mapped memory might be orphaned
 
 			if (release_nvidia_mapping(addr))
-				VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
+			{
+				if (mmt_binary_output)
+				{
+					mmt_bin_write_1('n');
+					mmt_bin_write_1('e');
+					mmt_bin_write_4(obj1);
+					mmt_bin_write_4(obj2);
+					mmt_bin_write_8(addr);
+					mmt_bin_end();
+				}
+				else
+					VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
+			}
 
 			break;
 		case 0xc0304627:		// 0x27 Allocate map (also create object)
@@ -544,9 +753,20 @@ void mmt_nv_ioctl_post(UWord *args)
 			obj2 = data[2];
 			type = data[3];
 			addr = data[6];
-			VG_(message) (Vg_DebugMsg,
-					"create mapped object 0x%08x:0x%08x type=0x%08x 0x%08lx\n",
-					obj1, obj2, type, addr);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('p');
+				mmt_bin_write_4(obj1);
+				mmt_bin_write_4(obj2);
+				mmt_bin_write_4(type);
+				mmt_bin_write_8(addr);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg,
+						"create mapped object 0x%08x:0x%08x type=0x%08x 0x%08lx\n",
+						obj1, obj2, type, addr);
 			if (addr == 0)
 				break;
 
@@ -567,10 +787,22 @@ void mmt_nv_ioctl_post(UWord *args)
 			/// XXX some currently mapped memory might be orphaned
 
 			{
-			Addr addr1 = release_nvidia_mapping2(obj1, obj2);
-			if ((void *)addr1 != NULL)
-				VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x %p\n",
-						obj1, obj2, (void *)addr1);
+				Addr addr1 = release_nvidia_mapping2(obj1, obj2);
+				if ((void *)addr1 != NULL)
+				{
+					if (mmt_binary_output)
+					{
+						mmt_bin_write_1('n');
+						mmt_bin_write_1('e');
+						mmt_bin_write_4(obj1);
+						mmt_bin_write_4(obj2);
+						mmt_bin_write_8(addr1);
+						mmt_bin_end();
+					}
+					else
+						VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x %p\n",
+								obj1, obj2, (void *)addr1);
+				}
 			}
 			break;
 			// 0x2a read stuff from video ram?
@@ -583,23 +815,37 @@ void mmt_nv_ioctl_post(UWord *args)
 				UInt *addr2 = (*(UInt **) (&data[4]));
 				dumpmem("out2 ", addr2[2], 0x3c);
 			}
-         else if (data[2] == 0x20800122)
-         {
-            UInt *out = (UInt *)mmt_2x4to8(data[5], data[4]);
-            UInt cnt = out[5];
-            UInt *tx = (UInt *)mmt_2x4to8(out[7], out[6]);
-            UInt k;
-            for (k = 0; k < cnt; ++k)
-               VG_(message) (Vg_DebugMsg, "RETURND: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
-                             tx[k * 8 + 0],
-                             tx[k * 8 + 3],
-                             tx[k * 8 + 5],
-                             tx[k * 8 + 7],
-                             tx[k * 8 + 1],
-                             tx[k * 8 + 2],
-                             tx[k * 8 + 4],
-                             tx[k * 8 + 6]);
-         }
+			else if (data[2] == 0x20800122)
+			{
+				UInt *out = (UInt *)mmt_2x4to8(data[5], data[4]);
+				UInt cnt = out[5];
+				UInt *tx = (UInt *)mmt_2x4to8(out[7], out[6]);
+				UInt k;
+
+				if (mmt_binary_output)
+				{
+					mmt_bin_write_1('n');
+					mmt_bin_write_1('1');
+					mmt_bin_write_4(cnt);
+					mmt_bin_write_8((ULong)tx);
+					mmt_bin_write_buffer((UChar *)tx, cnt * 8 * 4);
+					mmt_bin_end();
+				}
+				else
+				{
+					for (k = 0; k < cnt; ++k)
+						VG_(message) (Vg_DebugMsg, "RETURND: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
+									tx[k * 8 + 0],
+									tx[k * 8 + 3],
+									tx[k * 8 + 5],
+									tx[k * 8 + 7],
+									tx[k * 8 + 1],
+									tx[k * 8 + 2],
+									tx[k * 8 + 4],
+									tx[k * 8 + 6]);
+				}
+			}
+
 			break;
 			// 0x37 read configuration parameter
 		case 0xc0204638:
@@ -615,22 +861,64 @@ void mmt_nv_ioctl_post(UWord *args)
 			}
 			break;
 		case 0xc0384657:		// map GPU address
-			VG_(message) (Vg_DebugMsg,
-					"gpu map 0x%08x:0x%08x:0x%08x, addr 0x%08x, len 0x%08x\n",
-					data[1], data[2], data[3], data[10], data[6]);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('g');
+				mmt_bin_write_4(data[1]);
+				mmt_bin_write_4(data[2]);
+				mmt_bin_write_4(data[3]);
+				mmt_bin_write_4(data[10]);
+				mmt_bin_write_4(data[6]);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg,
+						"gpu map 0x%08x:0x%08x:0x%08x, addr 0x%08x, len 0x%08x\n",
+						data[1], data[2], data[3], data[10], data[6]);
 			break;
 		case 0xc0284658:		// unmap GPU address
-			VG_(message) (Vg_DebugMsg,
-					"gpu unmap 0x%08x:0x%08x:0x%08x addr 0x%08x\n", data[1],
-					data[2], data[3], data[6]);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('h');
+				mmt_bin_write_4(data[1]);
+				mmt_bin_write_4(data[2]);
+				mmt_bin_write_4(data[3]);
+				mmt_bin_write_4(data[6]);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg,
+						"gpu unmap 0x%08x:0x%08x:0x%08x addr 0x%08x\n", data[1],
+						data[2], data[3], data[6]);
 			break;
 		case 0xc0304654:		// create DMA object [3] is some kind of flags, [6] is an offset?
-			VG_(message) (Vg_DebugMsg,
-					"create dma object 0x%08x, type 0x%08x, parent 0x%08x\n",
-					data[1], data[2], data[5]);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('t');
+				mmt_bin_write_4(data[1]);
+				mmt_bin_write_4(data[2]);
+				mmt_bin_write_4(data[5]);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg,
+						"create dma object 0x%08x, type 0x%08x, parent 0x%08x\n",
+						data[1], data[2], data[5]);
 			break;
 		case 0xc0104659:		// bind
-			VG_(message) (Vg_DebugMsg, "bind 0x%08x 0x%08x\n", data[1], data[2]);
+			if (mmt_binary_output)
+			{
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('b');
+				mmt_bin_write_4(data[1]);
+				mmt_bin_write_4(data[2]);
+				mmt_bin_end();
+			}
+			else
+				VG_(message) (Vg_DebugMsg, "bind 0x%08x 0x%08x\n", data[1], data[2]);
 			break;
 		//case 0xc01c4634:
 			//    dumpmem("out", data[4], 0x40);
