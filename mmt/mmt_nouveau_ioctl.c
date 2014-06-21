@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2012 Marcin Slusarz <marcin.slusarz@gmail.com>
+   Copyright (C) 2012,2014 Marcin Slusarz <marcin.slusarz@gmail.com>
 
    This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
@@ -20,6 +20,7 @@
 */
 
 #include "mmt_nouveau_ioctl.h"
+#include "mmt_trace_bin.h"
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcprint.h"
 #include "vki-linux-drm-nouveau.h"
@@ -70,14 +71,34 @@ void mmt_nouveau_ioctl_post(UWord *args)
 	if (id == VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC)
 	{
 		struct vki_drm_nouveau_grobj_alloc *arg = data;
-		VG_(message) (Vg_DebugMsg,
-				"create gpu object 0x%08x:0x%08x type 0x%04x (%s)\n",
-				0, arg->handle, arg->class, "");
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('c');
+			mmt_bin_write_4(0);
+			mmt_bin_write_4(arg->handle);
+			mmt_bin_write_4(arg->class);
+			mmt_bin_write_str("");
+			mmt_bin_end();
+		}
+		else
+			VG_(message) (Vg_DebugMsg,
+					"create gpu object 0x%08x:0x%08x type 0x%04x (%s)\n",
+					0, arg->handle, arg->class, "");
 	}
 	else if (id == VKI_DRM_IOCTL_NOUVEAU_GPUOBJ_FREE)
 	{
 		struct vki_drm_nouveau_gpuobj_free *arg = data;
-		VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", 0, arg->handle);
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('d');
+			mmt_bin_write_4(0);
+			mmt_bin_write_4(arg->handle);
+			mmt_bin_end();
+		}
+		else
+			VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", 0, arg->handle);
 	}
 }
 
