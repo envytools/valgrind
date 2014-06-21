@@ -26,8 +26,6 @@
 
 #include "mmt_trace_text.h"
 
-#define MMT_PRINT_DATA
-
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
 	char filename[100];
@@ -42,21 +40,12 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 		VG_(snprintf) (namestr, len, "@%08lx", inst_addr);
 }
 
-#ifdef MMT_PRINT_DATA
 #define print_store(fmt, ...) \
 	VG_(message)(Vg_DebugMsg, "w %d:0x%04x, " fmt "\n", \
 				region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
 #define print_load(fmt, ...) \
 	VG_(message)(Vg_DebugMsg, "r %d:0x%04x, " fmt "\n", \
 				region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
-#else
-#define print_store(fmt, ...) \
-	VG_(message)(Vg_DebugMsg, "", \
-		region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
-#define print_load(fmt, ...) \
-	VG_(message)(Vg_DebugMsg, "", \
-			region->id, (unsigned int)(addr - region->start), __VA_ARGS__)
-#endif
 
 VG_REGPARM(2)
 void mmt_trace_store_1(Addr addr, UWord value)
