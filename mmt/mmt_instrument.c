@@ -31,129 +31,111 @@
 
 int dump_load = True, dump_store = True;
 
+static void addCall(IRSB *bb, const char *name, void *fun, IRExpr **argv)
+{
+	IRDirty *di = unsafeIRDirty_0_N(2, name, VG_(fnptr_to_fnentry)(fun), argv);
+
+	addStmtToIRSB(bb, IRStmt_Dirty(di));
+}
+
 static maybe_unused void
 __add_trace_load1_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1)
 {
-	IRExpr **argv;
-	IRDirty *di;
+	IRExpr **argv = mkIRExprVec_3(addr, val1, mkIRExpr_HWord(inst_addr));
 
-	argv = mkIRExprVec_3(addr, val1, mkIRExpr_HWord(inst_addr));
 	if (size == 1)
-		di = unsafeIRDirty_0_N(2, "trace_load_1", VG_(fnptr_to_fnentry)(mmt_trace_load_1_ia), argv);
+		addCall(bb, "trace_load_1", mmt_trace_load_1_ia, argv);
 	else if (size == 2)
-		di = unsafeIRDirty_0_N(2, "trace_load_2", VG_(fnptr_to_fnentry)(mmt_trace_load_2_ia), argv);
+		addCall(bb, "trace_load_2", mmt_trace_load_2_ia, argv);
 	else if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4_ia), argv);
+		addCall(bb, "trace_load_4", mmt_trace_load_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8", VG_(fnptr_to_fnentry)(mmt_trace_load_8_ia), argv);
+		addCall(bb, "trace_load_8", mmt_trace_load_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_load1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1)
 {
-	IRExpr **argv;
-	IRDirty *di;
+	IRExpr **argv = mkIRExprVec_2(addr, val1);
 
-	argv = mkIRExprVec_2(addr, val1);
 	if (size == 1)
-		di = unsafeIRDirty_0_N(2, "trace_load_1", VG_(fnptr_to_fnentry)(mmt_trace_load_1), argv);
+		addCall(bb, "trace_load_1", mmt_trace_load_1, argv);
 	else if (size == 2)
-		di = unsafeIRDirty_0_N(2, "trace_load_2", VG_(fnptr_to_fnentry)(mmt_trace_load_2), argv);
+		addCall(bb, "trace_load_2", mmt_trace_load_2, argv);
 	else if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4), argv);
+		addCall(bb, "trace_load_4", mmt_trace_load_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8", VG_(fnptr_to_fnentry)(mmt_trace_load_8), argv);
+		addCall(bb, "trace_load_8", mmt_trace_load_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_load2_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_4(addr, val1, val2, mkIRExpr_HWord(inst_addr));
+	IRExpr **argv = mkIRExprVec_4(addr, val1, val2, mkIRExpr_HWord(inst_addr));
 
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4_4", VG_(fnptr_to_fnentry) (mmt_trace_load_4_4_ia), argv);
+		addCall(bb, "trace_load_4_4", mmt_trace_load_4_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8_8", VG_(fnptr_to_fnentry) (mmt_trace_load_8_8_ia), argv);
+		addCall(bb, "trace_load_8_8", mmt_trace_load_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
+
 static maybe_unused void
 __add_trace_load2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_3(addr, val1, val2);
+	IRExpr **argv = mkIRExprVec_3(addr, val1, val2);
 
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4_4", VG_(fnptr_to_fnentry) (mmt_trace_load_4_4), argv);
+		addCall(bb, "trace_load_4_4", mmt_trace_load_4_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8_8", VG_(fnptr_to_fnentry) (mmt_trace_load_8_8), argv);
+		addCall(bb, "trace_load_8_8", mmt_trace_load_8_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_load4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2, IRExpr *val3, IRExpr *val4)
 {
-	IRExpr **argv;
-	IRDirty *di;
+	IRExpr **argv = mkIRExprVec_6(addr, val1, val2, val3, val4, mkIRExpr_HWord(inst_addr));
 
-	argv = mkIRExprVec_6(addr, val1, val2, val3, val4, mkIRExpr_HWord(inst_addr));
 #ifndef MMT_64BIT
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4_4_4_4_ia), argv);
+		addCall(bb, "trace_load_4_4_4_4", mmt_trace_load_4_4_4_4_ia, argv);
 #else
 	if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8_8_8_8", VG_(fnptr_to_fnentry) (mmt_trace_load_8_8_8_8_ia), argv);
+		addCall(bb, "trace_load_8_8_8_8", mmt_trace_load_8_8_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
+
 static maybe_unused void
 __add_trace_load4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1, IRExpr *val2, IRExpr *val3, IRExpr *val4)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_5(addr, val1, val2, val3, val4);
+	IRExpr **argv = mkIRExprVec_5(addr, val1, val2, val3, val4);
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_load_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_load_4_4_4_4), argv);
+		addCall(bb, "trace_load_4_4_4_4", mmt_trace_load_4_4_4_4, argv);
 #else
 	if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_load_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_load_8_8_8_8), argv);
+		addCall(bb, "trace_load_8_8_8_8", mmt_trace_load_8_8_8_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 #ifdef MMT_PRINT_FILENAMES
@@ -392,134 +374,104 @@ static void add_trace_load(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRE
 static maybe_unused void
 __add_trace_store1_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *data)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_3(addr, data, mkIRExpr_HWord(inst_addr));
+	IRExpr **argv = mkIRExprVec_3(addr, data, mkIRExpr_HWord(inst_addr));
 
 	if (size == 1)
-		di = unsafeIRDirty_0_N(2, "trace_store_1", VG_(fnptr_to_fnentry)(mmt_trace_store_1_ia), argv);
+		addCall(bb, "trace_store_1", mmt_trace_store_1_ia, argv);
 	else if (size == 2)
-		di = unsafeIRDirty_0_N(2, "trace_store_2", VG_(fnptr_to_fnentry)(mmt_trace_store_2_ia), argv);
+		addCall(bb, "trace_store_2", mmt_trace_store_2_ia, argv);
 	else if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_ia), argv);
+		addCall(bb, "trace_store_4", mmt_trace_store_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_ia), argv);
+		addCall(bb, "trace_store_8", mmt_trace_store_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_store1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *data)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_2(addr, data);
+	IRExpr **argv = mkIRExprVec_2(addr, data);
 
 	if (size == 1)
-		di = unsafeIRDirty_0_N(2, "trace_store_1", VG_(fnptr_to_fnentry)(mmt_trace_store_1), argv);
+		addCall(bb, "trace_store_1", mmt_trace_store_1, argv);
 	else if (size == 2)
-		di = unsafeIRDirty_0_N(2, "trace_store_2", VG_(fnptr_to_fnentry)(mmt_trace_store_2), argv);
+		addCall(bb, "trace_store_2", mmt_trace_store_2, argv);
 	else if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4), argv);
+		addCall(bb, "trace_store_4", mmt_trace_store_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8), argv);
+		addCall(bb, "trace_store_8", mmt_trace_store_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_store2_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 		IRExpr *data1, IRExpr *data2)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_4(addr, data1, data2, mkIRExpr_HWord(inst_addr));
+	IRExpr **argv = mkIRExprVec_4(addr, data1, data2, mkIRExpr_HWord(inst_addr));
 
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4_ia), argv);
+		addCall(bb, "trace_store_4_4", mmt_trace_store_4_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8_ia), argv);
+		addCall(bb, "trace_store_8_8", mmt_trace_store_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_store2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 		IRExpr *data1, IRExpr *data2)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_3(addr, data1, data2);
+	IRExpr **argv = mkIRExprVec_3(addr, data1, data2);
 
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4), argv);
+		addCall(bb, "trace_store_4_4", mmt_trace_store_4_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8), argv);
+		addCall(bb, "trace_store_8_8", mmt_trace_store_8_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 static maybe_unused void
 __add_trace_store4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 		IRExpr *data1, IRExpr *data2, IRExpr *data3, IRExpr *data4)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_6(addr, data1, data2, data3, data4, mkIRExpr_HWord(inst_addr));
+	IRExpr **argv = mkIRExprVec_6(addr, data1, data2, data3, data4, mkIRExpr_HWord(inst_addr));
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4_4_4_ia), argv);
+		addCall(bb, "trace_store_4_4_4_4", mmt_trace_store_4_4_4_4_ia, argv);
 #else
 	if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8_8_8_ia), argv);
+		addCall(bb, "trace_store_8_8_8_8", mmt_trace_store_8_8_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 static maybe_unused void
 __add_trace_store4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 		IRExpr *data1, IRExpr *data2, IRExpr *data3, IRExpr *data4)
 {
-	IRExpr **argv;
-	IRDirty *di;
-
-	argv = mkIRExprVec_5(addr, data1, data2, data3, data4);
+	IRExpr **argv = mkIRExprVec_5(addr, data1, data2, data3, data4);
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		di = unsafeIRDirty_0_N(2, "trace_store_4_4_4_4", VG_(fnptr_to_fnentry)(mmt_trace_store_4_4_4_4), argv);
+		addCall(bb, "trace_store_4_4_4_4", mmt_trace_store_4_4_4_4, argv);
 #else
 	if (size == 8)
-		di = unsafeIRDirty_0_N(2, "trace_store_8_8_8_8", VG_(fnptr_to_fnentry)(mmt_trace_store_8_8_8_8), argv);
+		addCall(bb, "trace_store_8_8_8_8", mmt_trace_store_8_8_8_8, argv);
 #endif
 	else
 		tl_assert(0);
-
-	addStmtToIRSB(bb, IRStmt_Dirty(di));
 }
 
 #ifdef MMT_PRINT_FILENAMES
