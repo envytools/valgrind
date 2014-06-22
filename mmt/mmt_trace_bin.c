@@ -642,3 +642,76 @@ void mmt_trace_load_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 	print_load_end();
 }
 #endif
+
+#define BUF_SIZE 64 * 1024
+static char buffer[BUF_SIZE];
+static int written = 0;
+
+void mmt_bin_flush(void)
+{
+	VG_(write)(VG_(log_output_sink).fd, buffer, written);
+	written = 0;
+}
+
+void mmt_bin_write_1(UChar u8)
+{
+	if (BUF_SIZE - written < 1)
+		mmt_bin_flush();
+	VG_(memcpy)(buffer + written, &u8, 1);
+	written++;
+}
+void mmt_bin_write_2(UShort u16)
+{
+	if (BUF_SIZE - written < 2)
+		mmt_bin_flush();
+	VG_(memcpy)(buffer + written, &u16, 2);
+	written += 2;
+}
+void mmt_bin_write_4(UInt u32)
+{
+	if (BUF_SIZE - written < 4)
+		mmt_bin_flush();
+	VG_(memcpy)(buffer + written, &u32, 4);
+	written += 4;
+}
+void mmt_bin_write_8(ULong u64)
+{
+	if (BUF_SIZE - written < 8)
+		mmt_bin_flush();
+	VG_(memcpy)(buffer + written, &u64, 8);
+	written += 8;
+}
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+void mmt_bin_write_str(const char *str)
+{
+	UInt len = VG_(strlen)(str) + 1;
+	mmt_bin_write_4(len);
+
+	do
+	{
+		if (BUF_SIZE - written < len)
+			mmt_bin_flush();
+		int cur = MIN(BUF_SIZE - written, len);
+		VG_(memcpy)(buffer + written, str, cur);
+		written += cur;
+		len -= cur;
+		str += cur;
+	}
+	while (len > 0);
+}
+void mmt_bin_write_buffer(UChar *buf, int len)
+{
+	mmt_bin_write_4(len);
+
+	do
+	{
+		if (BUF_SIZE - written < len)
+			mmt_bin_flush();
+		int cur = MIN(BUF_SIZE - written, len);
+		VG_(memcpy)(buffer + written, buf, cur);
+		written += cur;
+		len -= cur;
+		buf += cur;
+	}
+	while (len > 0);
+}
