@@ -654,6 +654,11 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 		mmt_nv_ioctl_pre(args);
 		mmt_nouveau_ioctl_pre(args);
 	}
+	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
+	{
+		if (mmt_binary_output)
+			mmt_bin_flush();
+	}
 }
 
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -850,6 +855,8 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 	{
 		mmt_nv_ioctl_post(args);
 		mmt_nouveau_ioctl_post(args);
+		if (mmt_binary_output)
+			mmt_bin_flush();
 	}
 	else if (syscallno == __NR_open)
 		post_open(tid, args, nArgs, res);
