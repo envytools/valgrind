@@ -94,33 +94,14 @@ void mmt_trace_load_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_
 	void mmt_trace_load_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr);
 #endif
 
-static inline void mmt_bin_write_1(UChar u8)
-{
-	VG_(write)(VG_(log_output_sink).fd, &u8, 1);
-}
-static inline void mmt_bin_write_2(UShort u16)
-{
-	VG_(write)(VG_(log_output_sink).fd, &u16, 2);
-}
-static inline void mmt_bin_write_4(UInt u32)
-{
-	VG_(write)(VG_(log_output_sink).fd, &u32, 4);
-}
-static inline void mmt_bin_write_8(ULong u64)
-{
-	VG_(write)(VG_(log_output_sink).fd, &u64, 8);
-}
-static inline void mmt_bin_write_str(const char *str)
-{
-	UInt len = VG_(strlen)(str) + 1;
-	mmt_bin_write_4(len);
-	VG_(write)(VG_(log_output_sink).fd, str, len);
-}
-static inline void mmt_bin_write_buffer(UChar *buffer, int len)
-{
-	mmt_bin_write_4(len);
-	VG_(write)(VG_(log_output_sink).fd, buffer, len);
-}
+void mmt_bin_write_1(UChar u8);
+void mmt_bin_write_2(UShort u16);
+void mmt_bin_write_4(UInt u32);
+void mmt_bin_write_8(ULong u64);
+void mmt_bin_write_str(const char *str);
+void mmt_bin_write_buffer(UChar *buffer, int len);
+
+void mmt_bin_flush(void);
 
 #define mmt_bin_end() \
 		mmt_bin_write_1(10)
