@@ -52,11 +52,46 @@ void mmt_nouveau_ioctl_post_close(UWord *args)
 void mmt_nouveau_ioctl_pre(UWord *args)
 {
 	int fd = args[0];
-//	UInt id = args[1];
-//	UInt *data = (UInt *) args[2];
+	UInt id = args[1];
+	UInt *data = (UInt *) args[2];
+	UInt size;
+	int i;
 
 	if (!FD_ISSET(fd, &nouveau_fds))
 		return;
+
+	if ((id & 0x0000FF00) == 0x6400)
+	{
+		size = (id & 0x3FFF0000) >> 16;
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('i');
+			mmt_bin_write_4(fd);
+			mmt_bin_write_4(id);
+			mmt_bin_write_buffer((UChar *)data, size);
+			mmt_bin_end();
+		}
+		else
+		{
+			char line[4096];
+			int idx = 0;
+
+			VG_(sprintf) (line, "pre_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
+			idx = VG_(strlen(line));
+
+			for (i = 0; i < size / 4; ++i)
+			{
+				if (idx + 11 >= 4095)
+					break;
+				VG_(sprintf) (line + idx, "0x%08x ", data[i]);
+				idx += 11;
+			}
+			VG_(message) (Vg_DebugMsg, "%s\n", line);
+		}
+	}
+	else
+		VG_(message)(Vg_DebugMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 }
 
 void mmt_nouveau_ioctl_post(UWord *args)
@@ -64,9 +99,46 @@ void mmt_nouveau_ioctl_post(UWord *args)
 	int fd = args[0];
 	UInt id = args[1];
 	void *data = (void *) args[2];
+	UInt *dataUint = (UInt *) args[2];
+	UInt size;
+	int i;
 
 	if (!FD_ISSET(fd, &nouveau_fds))
 		return;
+
+	if ((id & 0x0000FF00) == 0x6400)
+	{
+		size = (id & 0x3FFF0000) >> 16;
+
+		if (mmt_binary_output)
+		{
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('j');
+			mmt_bin_write_4(fd);
+			mmt_bin_write_4(id);
+			mmt_bin_write_buffer((UChar *)data, size);
+			mmt_bin_end();
+		}
+		else
+		{
+			char line[4096];
+			int idx = 0;
+
+			VG_(sprintf) (line, "post_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
+			idx = VG_(strlen(line));
+
+			for (i = 0; i < size / 4; ++i)
+			{
+				if (idx + 11 >= 4095)
+					break;
+				VG_(sprintf) (line + idx, "0x%08x ", dataUint[i]);
+				idx += 11;
+			}
+			VG_(message) (Vg_DebugMsg, "%s\n", line);
+		}
+	}
+	else
+		VG_(message)(Vg_DebugMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 
 	if (id == VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC)
 	{
