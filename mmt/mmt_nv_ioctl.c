@@ -752,7 +752,7 @@ void mmt_nv_ioctl_post(UWord *args)
 			obj1 = data[1];
 			obj2 = data[2];
 			type = data[3];
-			addr = data[6];
+			addr = (((Off64T)data[7]) << 32) | data[6];
 			if (mmt_binary_output)
 			{
 				mmt_bin_write_1('n');
