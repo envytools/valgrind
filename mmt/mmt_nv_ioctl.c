@@ -624,7 +624,7 @@ void mmt_nv_ioctl_post(UWord *args)
 	int fd = args[0];
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
-	UWord addr;
+	Off64T addr;
 	UInt obj1, obj2, size, type;
 	int i;
 	struct mmt_mmap_data *region;
@@ -704,7 +704,7 @@ void mmt_nv_ioctl_post(UWord *args)
 		case 0xc030464e:		// Allocate map for existing object
 			obj1 = data[1];
 			obj2 = data[2];
-			addr = data[8];
+			addr = (((Off64T)data[9]) << 32) | data[8];
 
 			if (mmt_binary_output)
 			{
@@ -716,7 +716,7 @@ void mmt_nv_ioctl_post(UWord *args)
 				mmt_bin_end();
 			}
 			else
-				VG_(message) (Vg_DebugMsg, "allocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
+				VG_(message) (Vg_DebugMsg, "allocate map 0x%08x:0x%08x 0x%08llx\n", obj1, obj2, addr);
 
 			region = get_nvidia_mapping(addr);
 			if (region)
@@ -729,7 +729,7 @@ void mmt_nv_ioctl_post(UWord *args)
 		case 0xc020464f:		// Deallocate map for existing object
 			obj1 = data[1];
 			obj2 = data[2];
-			addr = data[4];
+			addr = (((Off64T)data[5]) << 32) | data[4];
 			/// XXX some currently mapped memory might be orphaned
 
 			if (release_nvidia_mapping(addr))
@@ -744,7 +744,7 @@ void mmt_nv_ioctl_post(UWord *args)
 					mmt_bin_end();
 				}
 				else
-					VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x 0x%08lx\n", obj1, obj2, addr);
+					VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x 0x%08llx\n", obj1, obj2, addr);
 			}
 
 			break;
@@ -765,7 +765,7 @@ void mmt_nv_ioctl_post(UWord *args)
 			}
 			else
 				VG_(message) (Vg_DebugMsg,
-						"create mapped object 0x%08x:0x%08x type=0x%08x 0x%08lx\n",
+						"create mapped object 0x%08x:0x%08x type=0x%08x 0x%08llx\n",
 						obj1, obj2, type, addr);
 			if (addr == 0)
 				break;
