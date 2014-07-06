@@ -861,37 +861,39 @@ void mmt_nv_ioctl_post(UWord *args)
 			}
 			break;
 		case 0xc0384657:		// map GPU address
+			addr = (((Off64T)data[11]) << 32) | data[10];
 			if (mmt_binary_output)
 			{
 				mmt_bin_write_1('n');
-				mmt_bin_write_1('g');
+				mmt_bin_write_1('G');
 				mmt_bin_write_4(data[1]);
 				mmt_bin_write_4(data[2]);
 				mmt_bin_write_4(data[3]);
-				mmt_bin_write_4(data[10]);
+				mmt_bin_write_8(addr);
 				mmt_bin_write_4(data[6]);
 				mmt_bin_end();
 			}
 			else
 				VG_(message) (Vg_DebugMsg,
-						"gpu map 0x%08x:0x%08x:0x%08x, addr 0x%08x, len 0x%08x\n",
-						data[1], data[2], data[3], data[10], data[6]);
+						"gpu map 0x%08x:0x%08x:0x%08x, addr 0x%08llx, len 0x%08x\n",
+						data[1], data[2], data[3], addr, data[6]);
 			break;
 		case 0xc0284658:		// unmap GPU address
+			addr = (((Off64T)data[7]) << 32) | data[6];
 			if (mmt_binary_output)
 			{
 				mmt_bin_write_1('n');
-				mmt_bin_write_1('h');
+				mmt_bin_write_1('H');
 				mmt_bin_write_4(data[1]);
 				mmt_bin_write_4(data[2]);
 				mmt_bin_write_4(data[3]);
-				mmt_bin_write_4(data[6]);
+				mmt_bin_write_8(addr);
 				mmt_bin_end();
 			}
 			else
 				VG_(message) (Vg_DebugMsg,
-						"gpu unmap 0x%08x:0x%08x:0x%08x addr 0x%08x\n", data[1],
-						data[2], data[3], data[6]);
+						"gpu unmap 0x%08x:0x%08x:0x%08x addr 0x%08llx\n", data[1],
+						data[2], data[3], addr);
 			break;
 		case 0xc0304654:		// create DMA object [3] is some kind of flags, [6] is an offset?
 			if (mmt_binary_output)
