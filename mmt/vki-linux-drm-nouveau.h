@@ -100,6 +100,16 @@ struct vki_drm_nouveau_gem_pushbuf_bo {
 	struct vki_drm_nouveau_gem_pushbuf_bo_presumed presumed;
 };
 
+struct vki_drm_nouveau_gem_pushbuf_reloc {
+	__vki_u32 reloc_bo_index;
+	__vki_u32 reloc_bo_offset;
+	__vki_u32 bo_index;
+	__vki_u32 flags;
+	__vki_u32 data;
+	__vki_u32 vor;
+	__vki_u32 tor;
+};
+
 struct vki_drm_nouveau_gem_pushbuf_push {
 	__vki_u32 bo_index;
 	__vki_u32 pad;
