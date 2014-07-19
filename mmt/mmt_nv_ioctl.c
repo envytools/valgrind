@@ -56,6 +56,7 @@ static int trace_mark_cnt = 0;
  *     m = mmap
  *     o = memory dump
  *     p = create mapped object
+ *     P = nouveau's GEM_PUSHBUF data
  *     r = create driver object
  *     t = create dma object
  *     v = create device object
