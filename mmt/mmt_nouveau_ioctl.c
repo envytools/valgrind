@@ -148,7 +148,7 @@ void mmt_nouveau_ioctl_pre(UWord *args)
 			mmt_nouveau_pushbuf((void *)data);
 	}
 	else
-		VG_(message)(Vg_DebugMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
+		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 }
 
 void mmt_nouveau_ioctl_post(UWord *args)
@@ -195,7 +195,7 @@ void mmt_nouveau_ioctl_post(UWord *args)
 		}
 	}
 	else
-		VG_(message)(Vg_DebugMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
+		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 
 	if (id == VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC)
 	{
