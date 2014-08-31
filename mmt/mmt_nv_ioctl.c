@@ -453,7 +453,8 @@ void mmt_nv_ioctl_pre(UWord *args)
 			// 0x37 read stuff from video ram?
 			//case 0xc0204637:
 		case 0xc0204638:
-			dumpmem("in ", data[4], data[6]);
+			addr = (((Off64T)data[5]) << 32) | data[4];
+			dumpmem("in ", addr, data[6]);
 			break;
 #if 1
 		case 0xc0204637:
@@ -850,7 +851,8 @@ void mmt_nv_ioctl_post(UWord *args)
 			break;
 			// 0x37 read configuration parameter
 		case 0xc0204638:
-			dumpmem("out", data[4], data[6]);
+			addr = (((Off64T)data[5]) << 32) | data[4];
+			dumpmem("out", addr, data[6]);
 			break;
 		case 0xc0204637:
 			{
