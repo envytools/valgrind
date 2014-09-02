@@ -200,17 +200,7 @@ void mmt_nouveau_ioctl_post(UWord *args)
 	if (id == VKI_DRM_IOCTL_NOUVEAU_GROBJ_ALLOC)
 	{
 		struct vki_drm_nouveau_grobj_alloc *arg = data;
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('c');
-			mmt_bin_write_4(0);
-			mmt_bin_write_4(arg->handle);
-			mmt_bin_write_4(arg->class);
-			mmt_bin_write_str("");
-			mmt_bin_end();
-		}
-		else
+		if (!mmt_binary_output)
 			VG_(message) (Vg_DebugMsg,
 					"create gpu object 0x%08x:0x%08x type 0x%04x (%s)\n",
 					0, arg->handle, arg->class, "");
@@ -218,15 +208,7 @@ void mmt_nouveau_ioctl_post(UWord *args)
 	else if (id == VKI_DRM_IOCTL_NOUVEAU_GPUOBJ_FREE)
 	{
 		struct vki_drm_nouveau_gpuobj_free *arg = data;
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('d');
-			mmt_bin_write_4(0);
-			mmt_bin_write_4(arg->handle);
-			mmt_bin_end();
-		}
-		else
+		if (!mmt_binary_output)
 			VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", 0, arg->handle);
 	}
 }
