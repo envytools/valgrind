@@ -43,7 +43,6 @@
 #define TA_OPT "--mmt-trace-all-files"
 #define TM_OPT "--mmt-trace-marks"
 #define TV_OPT "--mmt-trace-nouveau-ioctls"
-#define TB_OPT "--mmt-output-binary"
 
 static Bool mmt_process_cmd_line_option(const HChar *arg)
 {
@@ -87,11 +86,6 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 		mmt_trace_nouveau_ioctls = True;
 		return True;
 	}
-	else if (VG_(strcmp)(arg, TB_OPT) == 0)
-	{
-		mmt_binary_output = True;
-		return True;
-	}
 
 	return False;
 }
@@ -106,7 +100,6 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TV_OPT      "    trace nouveau ioctls on /dev/dri/cardX\n");
 	VG_(printf)("    " TO_OPT     "     trace all 'open' syscalls\n");
 	VG_(printf)("    " TM_OPT "         send mmiotrace marks before and after ioctls\n");
-	VG_(printf)("    " TB_OPT   "       output in binary format (readable by demmt)\n");
 }
 
 static void mmt_print_debug_usage(void)
