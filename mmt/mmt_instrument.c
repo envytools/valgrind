@@ -23,7 +23,6 @@
 
 #include "mmt_instrument.h"
 #include "mmt_trace.h"
-#include "mmt_trace_text.h"
 #include "mmt_trace_bin.h"
 
 #include "pub_tool_machine.h"
@@ -31,7 +30,6 @@
 #include "pub_tool_libcassert.h"
 
 int dump_load = True, dump_store = True;
-#define FUN(txtfun, binfun) (mmt_binary_output ? binfun : txtfun)
 
 static void addCall(IRSB *bb, const char *name, void *fun, IRExpr **argv)
 {
@@ -46,14 +44,14 @@ __add_trace_load1_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *v
 	IRExpr **argv = mkIRExprVec_3(addr, val1, mkIRExpr_HWord(inst_addr));
 
 	if (size == 1)
-		addCall(bb, "trace_load_1", FUN(mmt_trace_load_1_ia, mmt_trace_load_bin_1_ia), argv);
+		addCall(bb, "trace_load_1", mmt_trace_load_bin_1_ia, argv);
 	else if (size == 2)
-		addCall(bb, "trace_load_2", FUN(mmt_trace_load_2_ia, mmt_trace_load_bin_2_ia), argv);
+		addCall(bb, "trace_load_2", mmt_trace_load_bin_2_ia, argv);
 	else if (size == 4)
-		addCall(bb, "trace_load_4", FUN(mmt_trace_load_4_ia, mmt_trace_load_bin_4_ia), argv);
+		addCall(bb, "trace_load_4", mmt_trace_load_bin_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_load_8", FUN(mmt_trace_load_8_ia, mmt_trace_load_bin_8_ia), argv);
+		addCall(bb, "trace_load_8", mmt_trace_load_bin_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -65,14 +63,14 @@ __add_trace_load1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1
 	IRExpr **argv = mkIRExprVec_2(addr, val1);
 
 	if (size == 1)
-		addCall(bb, "trace_load_1", FUN(mmt_trace_load_1, mmt_trace_load_bin_1), argv);
+		addCall(bb, "trace_load_1", mmt_trace_load_bin_1, argv);
 	else if (size == 2)
-		addCall(bb, "trace_load_2", FUN(mmt_trace_load_2, mmt_trace_load_bin_2), argv);
+		addCall(bb, "trace_load_2", mmt_trace_load_bin_2, argv);
 	else if (size == 4)
-		addCall(bb, "trace_load_4", FUN(mmt_trace_load_4, mmt_trace_load_bin_4), argv);
+		addCall(bb, "trace_load_4", mmt_trace_load_bin_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_load_8", FUN(mmt_trace_load_8, mmt_trace_load_bin_8), argv);
+		addCall(bb, "trace_load_8", mmt_trace_load_bin_8, argv);
 #endif
 	else
 		tl_assert(0);
@@ -84,10 +82,10 @@ __add_trace_load2_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *v
 	IRExpr **argv = mkIRExprVec_4(addr, val1, val2, mkIRExpr_HWord(inst_addr));
 
 	if (size == 4)
-		addCall(bb, "trace_load_4_4", FUN(mmt_trace_load_4_4_ia, mmt_trace_load_bin_4_4_ia), argv);
+		addCall(bb, "trace_load_4_4", mmt_trace_load_bin_4_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_load_8_8", FUN(mmt_trace_load_8_8_ia, mmt_trace_load_bin_8_8_ia), argv);
+		addCall(bb, "trace_load_8_8", mmt_trace_load_bin_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -99,10 +97,10 @@ __add_trace_load2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1
 	IRExpr **argv = mkIRExprVec_3(addr, val1, val2);
 
 	if (size == 4)
-		addCall(bb, "trace_load_4_4", FUN(mmt_trace_load_4_4, mmt_trace_load_bin_4_4), argv);
+		addCall(bb, "trace_load_4_4", mmt_trace_load_bin_4_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_load_8_8", FUN(mmt_trace_load_8_8, mmt_trace_load_bin_8_8), argv);
+		addCall(bb, "trace_load_8_8", mmt_trace_load_bin_8_8, argv);
 #endif
 	else
 		tl_assert(0);
@@ -115,10 +113,10 @@ __add_trace_load4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *v
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		addCall(bb, "trace_load_4_4_4_4", FUN(mmt_trace_load_4_4_4_4_ia, mmt_trace_load_bin_4_4_4_4_ia), argv);
+		addCall(bb, "trace_load_4_4_4_4", mmt_trace_load_bin_4_4_4_4_ia, argv);
 #else
 	if (size == 8)
-		addCall(bb, "trace_load_8_8_8_8", FUN(mmt_trace_load_8_8_8_8_ia, mmt_trace_load_bin_8_8_8_8_ia), argv);
+		addCall(bb, "trace_load_8_8_8_8", mmt_trace_load_bin_8_8_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -131,10 +129,10 @@ __add_trace_load4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *val1
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		addCall(bb, "trace_load_4_4_4_4", FUN(mmt_trace_load_4_4_4_4, mmt_trace_load_bin_4_4_4_4), argv);
+		addCall(bb, "trace_load_4_4_4_4", mmt_trace_load_bin_4_4_4_4, argv);
 #else
 	if (size == 8)
-		addCall(bb, "trace_load_8_8_8_8", FUN(mmt_trace_load_8_8_8_8, mmt_trace_load_bin_8_8_8_8), argv);
+		addCall(bb, "trace_load_8_8_8_8", mmt_trace_load_bin_8_8_8_8, argv);
 #endif
 	else
 		tl_assert(0);
@@ -379,14 +377,14 @@ __add_trace_store1_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *
 	IRExpr **argv = mkIRExprVec_3(addr, data, mkIRExpr_HWord(inst_addr));
 
 	if (size == 1)
-		addCall(bb, "trace_store_1", FUN(mmt_trace_store_1_ia, mmt_trace_store_bin_1_ia), argv);
+		addCall(bb, "trace_store_1", mmt_trace_store_bin_1_ia, argv);
 	else if (size == 2)
-		addCall(bb, "trace_store_2", FUN(mmt_trace_store_2_ia, mmt_trace_store_bin_2_ia), argv);
+		addCall(bb, "trace_store_2", mmt_trace_store_bin_2_ia, argv);
 	else if (size == 4)
-		addCall(bb, "trace_store_4", FUN(mmt_trace_store_4_ia, mmt_trace_store_bin_4_ia), argv);
+		addCall(bb, "trace_store_4", mmt_trace_store_bin_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_store_8", FUN(mmt_trace_store_8_ia, mmt_trace_store_bin_8_ia), argv);
+		addCall(bb, "trace_store_8", mmt_trace_store_bin_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -398,14 +396,14 @@ __add_trace_store1(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr, IRExpr *dat
 	IRExpr **argv = mkIRExprVec_2(addr, data);
 
 	if (size == 1)
-		addCall(bb, "trace_store_1", FUN(mmt_trace_store_1, mmt_trace_store_bin_1), argv);
+		addCall(bb, "trace_store_1", mmt_trace_store_bin_1, argv);
 	else if (size == 2)
-		addCall(bb, "trace_store_2", FUN(mmt_trace_store_2, mmt_trace_store_bin_2), argv);
+		addCall(bb, "trace_store_2", mmt_trace_store_bin_2, argv);
 	else if (size == 4)
-		addCall(bb, "trace_store_4", FUN(mmt_trace_store_4, mmt_trace_store_bin_4), argv);
+		addCall(bb, "trace_store_4", mmt_trace_store_bin_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_store_8", FUN(mmt_trace_store_8, mmt_trace_store_bin_8), argv);
+		addCall(bb, "trace_store_8", mmt_trace_store_bin_8, argv);
 #endif
 	else
 		tl_assert(0);
@@ -418,10 +416,10 @@ __add_trace_store2_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 	IRExpr **argv = mkIRExprVec_4(addr, data1, data2, mkIRExpr_HWord(inst_addr));
 
 	if (size == 4)
-		addCall(bb, "trace_store_4_4", FUN(mmt_trace_store_4_4_ia, mmt_trace_store_bin_4_4_ia), argv);
+		addCall(bb, "trace_store_4_4", mmt_trace_store_bin_4_4_ia, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_store_8_8", FUN(mmt_trace_store_8_8_ia, mmt_trace_store_bin_8_8_ia), argv);
+		addCall(bb, "trace_store_8_8", mmt_trace_store_bin_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -434,10 +432,10 @@ __add_trace_store2(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 	IRExpr **argv = mkIRExprVec_3(addr, data1, data2);
 
 	if (size == 4)
-		addCall(bb, "trace_store_4_4", FUN(mmt_trace_store_4_4, mmt_trace_store_bin_4_4), argv);
+		addCall(bb, "trace_store_4_4", mmt_trace_store_bin_4_4, argv);
 #ifdef MMT_64BIT
 	else if (size == 8)
-		addCall(bb, "trace_store_8_8", FUN(mmt_trace_store_8_8, mmt_trace_store_bin_8_8), argv);
+		addCall(bb, "trace_store_8_8", mmt_trace_store_bin_8_8, argv);
 #endif
 	else
 		tl_assert(0);
@@ -451,10 +449,10 @@ __add_trace_store4_ia(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		addCall(bb, "trace_store_4_4_4_4", FUN(mmt_trace_store_4_4_4_4_ia, mmt_trace_store_bin_4_4_4_4_ia), argv);
+		addCall(bb, "trace_store_4_4_4_4", mmt_trace_store_bin_4_4_4_4_ia, argv);
 #else
 	if (size == 8)
-		addCall(bb, "trace_store_8_8_8_8", FUN(mmt_trace_store_8_8_8_8_ia, mmt_trace_store_bin_8_8_8_8_ia), argv);
+		addCall(bb, "trace_store_8_8_8_8", mmt_trace_store_bin_8_8_8_8_ia, argv);
 #endif
 	else
 		tl_assert(0);
@@ -467,10 +465,10 @@ __add_trace_store4(IRSB *bb, IRExpr *addr, Int size, Addr inst_addr,
 
 #ifndef MMT_64BIT
 	if (size == 4)
-		addCall(bb, "trace_store_4_4_4_4", FUN(mmt_trace_store_4_4_4_4, mmt_trace_store_bin_4_4_4_4), argv);
+		addCall(bb, "trace_store_4_4_4_4", mmt_trace_store_bin_4_4_4_4, argv);
 #else
 	if (size == 8)
-		addCall(bb, "trace_store_8_8_8_8", FUN(mmt_trace_store_8_8_8_8, mmt_trace_store_bin_8_8_8_8), argv);
+		addCall(bb, "trace_store_8_8_8_8", mmt_trace_store_bin_8_8_8_8, argv);
 #endif
 	else
 		tl_assert(0);
