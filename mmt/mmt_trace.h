@@ -15,8 +15,6 @@
 #define MMT_MAX_TRACE_FILES 10
 #define MMT_MAX_REGIONS 1000
 
-extern int mmt_binary_output;
-
 struct mmt_mmap_data {
 	Addr start;
 	Addr end;
