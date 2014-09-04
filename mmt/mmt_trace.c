@@ -49,8 +49,6 @@ struct mmt_mmap_data *last_used_region = &null_region;
 struct negative_region neg_regions[NEG_REGS];
 static int neg_regions_number;
 
-int mmt_binary_output = False;
-
 #define noinline	__attribute__((noinline))
 
 static maybe_unused void dump_state(void)
@@ -655,10 +653,7 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 		mmt_nouveau_ioctl_pre(args);
 	}
 	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
-	{
-		if (mmt_binary_output)
-			mmt_bin_flush();
-	}
+		mmt_bin_flush();
 }
 
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -670,17 +665,13 @@ static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	{
 		int flags = (int)args[1];
 		int mode = (int)args[2];
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('o');
-			mmt_bin_write_4(flags);
-			mmt_bin_write_4(mode);
-			mmt_bin_write_4(res._val);
-			mmt_bin_write_str(path);
-			mmt_bin_end();
-		}
-		else
-			VG_(message)(Vg_DebugMsg, "sys_open: %s, flags: 0x%x, mode: 0x%x, ret: %ld\n", path, flags, mode, res._val);
+
+		mmt_bin_write_1('o');
+		mmt_bin_write_4(flags);
+		mmt_bin_write_4(mode);
+		mmt_bin_write_4(res._val);
+		mmt_bin_write_str(path);
+		mmt_bin_end();
 	}
 	if (res._isError)
 		return;
@@ -757,19 +748,12 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 
 	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0, 0, 0);
 
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_1('m');
-		mmt_bin_write_8(region->offset);
-		mmt_bin_write_4(region->id);
-		mmt_bin_write_8(region->start);
-		mmt_bin_write_8(len);
-		mmt_bin_end();
-	}
-	else
-		VG_(message) (Vg_DebugMsg,
-				"got new mmap at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-				(void *)region->start, len, region->offset, region->id);
+	mmt_bin_write_1('m');
+	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(region->id);
+	mmt_bin_write_8(region->start);
+	mmt_bin_write_8(len);
+	mmt_bin_end();
 }
 
 static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -786,22 +770,14 @@ static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	if (!region)
 		return;
 
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_1('u');
-		mmt_bin_write_8(region->offset);
-		mmt_bin_write_4(region->id);
-		mmt_bin_write_8(region->start);
-		mmt_bin_write_8(region->end - region->start);
-		mmt_bin_write_8(region->data1);
-		mmt_bin_write_8(region->data2);
-		mmt_bin_end();
-	}
-	else
-		VG_(message) (Vg_DebugMsg,
-				"removed mmap 0x%lx:0x%lx for: %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-				region->data1, region->data2, (void *)region->start,
-				region->end - region->start, region->offset, region->id);
+	mmt_bin_write_1('u');
+	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(region->id);
+	mmt_bin_write_8(region->start);
+	mmt_bin_write_8(region->end - region->start);
+	mmt_bin_write_8(region->data1);
+	mmt_bin_write_8(region->data2);
+	mmt_bin_end();
 
 	mmt_free_region(region);
 }
@@ -826,26 +802,16 @@ static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	mmt_free_region(region);
 	region = mmt_add_region(tmp.fd, res._val, res._val + new_len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
 
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_1('e');
-		mmt_bin_write_8(region->offset);
-		mmt_bin_write_4(region->id);
-		mmt_bin_write_8(start);
-		mmt_bin_write_8(old_len);
-		mmt_bin_write_8(region->data1);
-		mmt_bin_write_8(region->data2);
-		mmt_bin_write_8(region->start);
-		mmt_bin_write_8(region->end - region->start);
-		mmt_bin_end();
-	}
-	else
-		VG_(message) (Vg_DebugMsg,
-				"changed mmap 0x%lx:0x%lx from: (address: %p, len: 0x%08lx), to: (address: %p, len: 0x%08lx), offset 0x%llx, serial %d\n",
-				region->data1, region->data2,
-				(void *)start, old_len,
-				(void *)region->start, region->end - region->start,
-				region->offset, region->id);
+	mmt_bin_write_1('e');
+	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(region->id);
+	mmt_bin_write_8(start);
+	mmt_bin_write_8(old_len);
+	mmt_bin_write_8(region->data1);
+	mmt_bin_write_8(region->data2);
+	mmt_bin_write_8(region->start);
+	mmt_bin_write_8(region->end - region->start);
+	mmt_bin_end();
 }
 
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
@@ -855,8 +821,7 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 	{
 		mmt_nv_ioctl_post(args);
 		mmt_nouveau_ioctl_post(args);
-		if (mmt_binary_output)
-			mmt_bin_flush();
+		mmt_bin_flush();
 	}
 	else if (syscallno == __NR_open)
 		post_open(tid, args, nArgs, res);
