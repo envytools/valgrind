@@ -21,14 +21,8 @@
    The GNU General Public License is contained in the file COPYING.
 */
 #include "mmt_nv_ioctl.h"
-#include "mmt_trace.h"
 #include "mmt_trace_bin.h"
-#include "pub_tool_vki.h"
-#include "pub_tool_libcprint.h"
-#include "pub_tool_libcfile.h"
-#include "pub_tool_libcbase.h"
 #include "pub_tool_libcproc.h"
-#include "pub_tool_libcassert.h"
 #include "nvrm_ioctl.h"
 #include "nvrm_mthd.h"
 
@@ -133,48 +127,22 @@ static Addr release_nvidia_mapping2(UWord data1, UWord data2)
 
 static void dumpmem(const char *s, Addr addr, UInt size)
 {
-	char line[4096];
-	int idx = 0;
-	line[0] = 0;
-
-	UInt i;
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('o');
-		mmt_bin_write_8(addr);
-	}
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('o');
+	mmt_bin_write_8(addr);
 
 	if (!addr || (addr & 0xffff0000) == 0xbeef0000)
 	{
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_str("");
-			mmt_bin_write_buffer((UChar *)"", 0);
-			mmt_bin_end();
-		}
+		mmt_bin_write_str("");
+		mmt_bin_write_buffer((UChar *)"", 0);
+		mmt_bin_end();
+
 		return;
 	}
 
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_str(s);
-		mmt_bin_write_buffer((UChar *)addr, size);
-		mmt_bin_end();
-	}
-	else
-	{
-		size = size / 4;
-
-		for (i = 0; i < size; ++i)
-		{
-			if (idx + 11 >= 4095)
-				break;
-			VG_(sprintf) (line + idx, "0x%08x ", ((UInt *) addr)[i]);
-			idx += 11;
-		}
-		VG_(message) (Vg_DebugMsg, "%s%s\n", s, line);
-	}
+	mmt_bin_write_str(s);
+	mmt_bin_write_buffer((UChar *)addr, size);
+	mmt_bin_end();
 }
 
 void mmt_nv_ioctl_post_open(UWord *args, SysRes res)
@@ -228,23 +196,15 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	start = res._val;
 	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
 
-	if (mmt_binary_output)
-	{
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('m');
-		mmt_bin_write_8(region->offset);
-		mmt_bin_write_4(region->id);
-		mmt_bin_write_8(region->start);
-		mmt_bin_write_8(len);
-		mmt_bin_write_8(region->data1);
-		mmt_bin_write_8(region->data2);
-		mmt_bin_end();
-	}
-	else
-		VG_(message) (Vg_DebugMsg,
-				"got new mmap for 0x%08lx:0x%08lx at %p, len: 0x%08lx, offset: 0x%llx, serial: %d\n",
-				region->data1, region->data2, (void *)region->start, len,
-				region->offset, region->id);
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('m');
+	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(region->id);
+	mmt_bin_write_8(region->start);
+	mmt_bin_write_8(len);
+	mmt_bin_write_8(region->data1);
+	mmt_bin_write_8(region->data2);
+	mmt_bin_end();
 
 	return 1;
 }
@@ -372,7 +332,6 @@ void mmt_nv_ioctl_pre(UWord *args)
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
-	int i;
 
 	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
@@ -382,46 +341,23 @@ void mmt_nv_ioctl_pre(UWord *args)
 		char buf[50];
 		VG_(snprintf)(buf, 50, "VG-%d-%d-PRE\n", VG_(getpid)(), trace_mark_cnt);
 		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('k');
-			mmt_bin_write_str(buf);
-			mmt_bin_end();
-		}
-		else
-			VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('k');
+		mmt_bin_write_str(buf);
+		mmt_bin_end();
 	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
 		size = (id & 0x3FFF0000) >> 16;
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('i');
-			mmt_bin_write_4(fd);
-			mmt_bin_write_4(id);
-			mmt_bin_write_buffer((UChar *)data, size);
-			mmt_bin_end();
-		}
-		else
-		{
-			char line[4096];
-			int idx = 0;
 
-			VG_(sprintf) (line, "pre_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-			idx = VG_(strlen(line));
-
-			for (i = 0; i < size / 4; ++i)
-			{
-				if (idx + 11 >= 4095)
-					break;
-				VG_(sprintf) (line + idx, "0x%08x ", data[i]);
-				idx += 11;
-			}
-			VG_(message) (Vg_DebugMsg, "%s\n", line);
-		}
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('i');
+		mmt_bin_write_4(fd);
+		mmt_bin_write_4(id);
+		mmt_bin_write_buffer((UChar *)data, size);
+		mmt_bin_end();
 	}
 	else
 		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
@@ -431,9 +367,6 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_CREATE_DEV_OBJ:
 		{
 			struct nvrm_ioctl_create_dev_obj *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "create device object 0x%08x\n", s->handle);
 
 			// argument can be a string (7:0, indicating the bus number), but only if
 			// argument is 0xff
@@ -456,8 +389,6 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_CALL:
 		{
 			struct nvrm_ioctl_call *s = (void *)data;
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "call method 0x%08x:0x%08x\n", s->handle, s->mthd);
 
 			dumpmem("in ", s->ptr, s->size);
 
@@ -470,31 +401,13 @@ void mmt_nv_ioctl_pre(UWord *args)
 			{
 				struct nvrm_mthd_subdevice_bar0 *m = (void *)(unsigned long)s->ptr;
 				UInt *tx = (UInt *)(unsigned long)m->ptr;
-				if (mmt_binary_output)
-				{
-					mmt_bin_write_1('n');
-					mmt_bin_write_1('1');
-					mmt_bin_write_4(m->cnt);
-					mmt_bin_write_8(m->ptr);
-					mmt_bin_write_buffer((UChar *)tx, m->cnt * 8 * 4);
-					mmt_bin_end();
-				}
-				else
-				{
-					UInt k;
-					VG_(message) (Vg_DebugMsg, "<==(%u at %p)\n", m->cnt, tx);
 
-					for (k = 0; k < m->cnt; ++k)
-						VG_(message) (Vg_DebugMsg, "REQUEST: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
-									tx[k * 8 + 0],
-									tx[k * 8 + 3],
-									tx[k * 8 + 5],
-									tx[k * 8 + 7],
-									tx[k * 8 + 1],
-									tx[k * 8 + 2],
-									tx[k * 8 + 4],
-									tx[k * 8 + 6]);
-				}
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('1');
+				mmt_bin_write_4(m->cnt);
+				mmt_bin_write_8(m->ptr);
+				mmt_bin_write_buffer((UChar *)tx, m->cnt * 8 * 4);
+				mmt_bin_end();
 			}
 
 			break;
@@ -502,15 +415,11 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_UNK4D_OLD:
 		{
 			struct nvrm_ioctl_unk4d_old *s = (void *)data;
-			if (mmt_binary_output)
-			{
-				mmt_bin_write_1('n');
-				mmt_bin_write_1('4');
-				mmt_bin_write_str((void *)(unsigned long)s->ptr);
-				mmt_bin_end();
-			}
-			else
-				VG_(message) (Vg_DebugMsg, "in %s\n", (char *)(unsigned long)s->ptr);
+
+			mmt_bin_write_1('n');
+			mmt_bin_write_1('4');
+			mmt_bin_write_str((void *)(unsigned long)s->ptr);
+			mmt_bin_end();
 			break;
 		}
 
@@ -529,29 +438,10 @@ void mmt_nv_ioctl_pre(UWord *args)
 #endif
 			break;
 		}
-		case NVRM_IOCTL_DESTROY:
-		{
-			struct nvrm_ioctl_destroy *s = (void *)data;
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "destroy object 0x%08x:0x%08x\n", s->parent, s->handle);
-			break;
-		}
 		case NVRM_IOCTL_CREATE:
 		{
 			struct nvrm_ioctl_create *s = (void *)data;
-
-			struct object_type *objtype;
-			const char *name = "???";
-			objtype = find_objtype(s->cls);
-			if (objtype && objtype->name)
-				name = objtype->name;
-
-			if (!mmt_binary_output)
-			{
-				VG_(message) (Vg_DebugMsg,
-						"create gpu object 0x%08x:0x%08x type 0x%04x (%s)\n",
-						s->parent, s->handle, s->cls, name);
-			}
+			struct object_type *objtype = find_objtype(s->cls);
 
 			if (s->ptr)
 			{
@@ -563,15 +453,6 @@ void mmt_nv_ioctl_pre(UWord *args)
 
 			break;
 		}
-		case NVRM_IOCTL_CREATE_DRV_OBJ:
-		{
-			struct nvrm_ioctl_create_drv_obj *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg,
-						"create driver object 0x%08x:0x%08x type 0x%04x\n", s->parent, s->handle, s->cls);
-			break;
-		}
 	}
 }
 
@@ -581,7 +462,6 @@ void mmt_nv_ioctl_post(UWord *args)
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
-	int i;
 	struct mmt_mmap_data *region;
 
 	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
@@ -592,61 +472,29 @@ void mmt_nv_ioctl_post(UWord *args)
 		char buf[50];
 		VG_(snprintf)(buf, 50, "VG-%d-%d-POST\n", VG_(getpid)(), trace_mark_cnt++);
 		VG_(write)(trace_mark_fd, buf, VG_(strlen)(buf));
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('k');
-			mmt_bin_write_str(buf);
-			mmt_bin_end();
-		}
-		else
-			VG_(message)(Vg_DebugMsg, "MARK: %s", buf);
+
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('k');
+		mmt_bin_write_str(buf);
+		mmt_bin_end();
 	}
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
 		size = (id & 0x3FFF0000) >> 16;
 
-		if (mmt_binary_output)
-		{
-			mmt_bin_write_1('n');
-			mmt_bin_write_1('j');
-			mmt_bin_write_4(fd);
-			mmt_bin_write_4(id);
-			mmt_bin_write_buffer((UChar *)data, size);
-			mmt_bin_end();
-		}
-		else
-		{
-			char line[4096];
-			int idx = 0;
-
-			VG_(sprintf) (line, "post_ioctl: fd:%d, id:0x%02x (full:0x%x), data: ", fd, id & 0xFF, id);
-			idx = VG_(strlen(line));
-
-			for (i = 0; i < size / 4; ++i)
-			{
-				if (idx + 11 >= 4095)
-					break;
-				VG_(sprintf) (line + idx, "0x%08x ", data[i]);
-				idx += 11;
-			}
-			VG_(message) (Vg_DebugMsg, "%s\n", line);
-		}
+		mmt_bin_write_1('n');
+		mmt_bin_write_1('j');
+		mmt_bin_write_4(fd);
+		mmt_bin_write_4(id);
+		mmt_bin_write_buffer((UChar *)data, size);
+		mmt_bin_end();
 	}
 	else
 		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 
 	switch (id)
 	{
-		case NVRM_IOCTL_CREATE_CTX: // Initialize
-		{
-			struct nvrm_ioctl_create_ctx *s = (void *)data;
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "created context object 0x%08x\n", s->handle);
-
-			break;
-		}
 		case NVRM_IOCTL_CREATE_DEV_OBJ:
 		{
 			struct nvrm_ioctl_create_dev_obj *s = (void *)data;
@@ -656,9 +504,6 @@ void mmt_nv_ioctl_post(UWord *args)
 		case NVRM_IOCTL_HOST_MAP: // Allocate map for existing object
 		{
 			struct nvrm_ioctl_host_map *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "allocate map 0x%08x:0x%08x 0x%08llx\n", s->subdev, s->handle, (Off64T)s->foffset);
 
 			region = get_nvidia_mapping(s->foffset);
 			if (region)
@@ -674,22 +519,13 @@ void mmt_nv_ioctl_post(UWord *args)
 			struct nvrm_ioctl_host_unmap *s = (void *)data;
 			/// XXX some currently mapped memory might be orphaned
 
-			if (release_nvidia_mapping(s->foffset))
-			{
-				if (!mmt_binary_output)
-					VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x 0x%08llx\n",
-							s->subdev, s->handle, (Off64T)s->foffset);
-			}
+			release_nvidia_mapping(s->foffset);
 
 			break;
 		}
 		case NVRM_IOCTL_CREATE_VSPACE: // Allocate map (also create object)
 		{
 			struct nvrm_ioctl_create_vspace *s = (void *)data;
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg,
-						"create mapped object 0x%08x:0x%08x type=0x%08x 0x%08llx\n",
-						s->parent, s->handle, s->cls, (Off64T)s->foffset);
 			if (s->foffset == 0)
 				break;
 
@@ -706,13 +542,7 @@ void mmt_nv_ioctl_post(UWord *args)
 			struct nvrm_ioctl_destroy *s = (void *)data;
 			/// XXX some currently mapped memory might be orphaned
 
-			Addr addr1 = release_nvidia_mapping2(s->parent, s->handle);
-			if ((void *)addr1 != NULL)
-			{
-				if (!mmt_binary_output)
-					VG_(message) (Vg_DebugMsg, "deallocate map 0x%08x:0x%08x %p\n",
-							s->parent, s->handle, (void *)addr1);
-			}
+			release_nvidia_mapping2(s->parent, s->handle);
 			break;
 		}
 		case NVRM_IOCTL_CALL:
@@ -731,29 +561,12 @@ void mmt_nv_ioctl_post(UWord *args)
 				struct nvrm_mthd_subdevice_bar0 *m = (void *)(unsigned long)s->ptr;
 				UInt *tx = (UInt *)(unsigned long)m->ptr;
 
-				if (mmt_binary_output)
-				{
-					mmt_bin_write_1('n');
-					mmt_bin_write_1('1');
-					mmt_bin_write_4(m->cnt);
-					mmt_bin_write_8(m->ptr);
-					mmt_bin_write_buffer((UChar *)tx, m->cnt * 8 * 4);
-					mmt_bin_end();
-				}
-				else
-				{
-					UInt k;
-					for (k = 0; k < m->cnt; ++k)
-						VG_(message) (Vg_DebugMsg, "RETURND: DIR=%x MMIO=%x VALUE=%08x MASK=%08x UNK=%08x,%08x,%08x,%08x\n",
-									tx[k * 8 + 0],
-									tx[k * 8 + 3],
-									tx[k * 8 + 5],
-									tx[k * 8 + 7],
-									tx[k * 8 + 1],
-									tx[k * 8 + 2],
-									tx[k * 8 + 4],
-									tx[k * 8 + 6]);
-				}
+				mmt_bin_write_1('n');
+				mmt_bin_write_1('1');
+				mmt_bin_write_4(m->cnt);
+				mmt_bin_write_8(m->ptr);
+				mmt_bin_write_buffer((UChar *)tx, m->cnt * 8 * 4);
+				mmt_bin_end();
 			}
 
 			break;
@@ -774,43 +587,6 @@ void mmt_nv_ioctl_post(UWord *args)
 				// List supported object types
 				dumpmem("out2 ", addr2[2], addr2[0] * 4);
 
-			break;
-		}
-		case NVRM_IOCTL_VSPACE_MAP: // map GPU address
-		{
-			struct nvrm_ioctl_vspace_map *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg,
-						"gpu map 0x%08x:0x%08x:0x%08x, addr 0x%08llx, len 0x%08llx\n",
-						s->dev, s->vspace, s->handle, (Off64T)s->addr, (Off64T)s->size);
-			break;
-		}
-		case NVRM_IOCTL_VSPACE_UNMAP: // unmap GPU address
-		{
-			struct nvrm_ioctl_vspace_unmap *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg,
-						"gpu unmap 0x%08x:0x%08x:0x%08x addr 0x%08llx\n", s->dev,
-						s->vspace, s->handle, (Off64T)s->addr);
-			break;
-		}
-		case NVRM_IOCTL_CREATE_DMA:		// create DMA object [3] is some kind of flags, [6] is an offset?
-		{
-			struct nvrm_ioctl_create_dma *s = (void *)data;
-
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg,
-						"create dma object 0x%08x, type 0x%08x, parent 0x%08x\n",
-						s->handle, s->cls, s->parent);
-			break;
-		}
-		case NVRM_IOCTL_BIND: // bind
-		{
-			struct nvrm_ioctl_bind *s = (void *)data;
-			if (!mmt_binary_output)
-				VG_(message) (Vg_DebugMsg, "bind 0x%08x 0x%08x\n", s->target, s->handle);
 			break;
 		}
 	}
