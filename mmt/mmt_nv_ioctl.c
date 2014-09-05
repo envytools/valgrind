@@ -426,16 +426,9 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_UNK5E:
 		{
 			// Copy data from mem to GPU
-#if 0
 			struct nvrm_ioctl_unk5e *s = (void *)data;
-			SysRes ff;
-			ff = VG_(open) ("dump5e", O_CREAT | O_WRONLY | O_TRUNC, 0777);
-			if (!ff.isError)
-			{
-				VG_(write) (ff.res, (void *) s->ptr, 0x01000000);
-				VG_(close) (ff.res);
-			}
-#endif
+			if (0) // enable after veryfing size
+				dumpmem("in", s->ptr, 0x01000000);
 			break;
 		}
 		case NVRM_IOCTL_CREATE:
