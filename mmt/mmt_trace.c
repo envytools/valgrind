@@ -819,8 +819,8 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 {
 	if (syscallno == __NR_ioctl)
 	{
-		mmt_nv_ioctl_post(args);
-		mmt_nouveau_ioctl_post(args);
+		mmt_nv_ioctl_post(args, res);
+		mmt_nouveau_ioctl_post(args, res);
 		mmt_bin_flush();
 	}
 	else if (syscallno == __NR_open)
