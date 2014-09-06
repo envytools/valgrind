@@ -33,6 +33,7 @@
  * o = open
  * r = read
  * s = read with info
+ * t = write syscall
  * u = unmap
  * w = write
  * x = write with info

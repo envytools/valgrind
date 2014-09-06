@@ -42,6 +42,8 @@ struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 
 int mmt_trace_all_files = False;
 
+int mmt_trace_stdout_stderr = False;
+
 static struct mmt_mmap_data null_region;
 struct mmt_mmap_data *last_used_region = &null_region;
 
@@ -644,6 +646,23 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	return region;
 }
 
+static void mmt_pre_write(UWord *args)
+{
+	if (!mmt_trace_stdout_stderr)
+		return;
+
+	int fd = args[0];
+	if (fd != 1 && fd != 2)
+		return;
+
+	void *buf = (void *)args[1];
+	UInt count = args[2];
+
+	mmt_bin_write_1('t');
+	mmt_bin_write_4(fd);
+	mmt_bin_write_buffer(buf, count);
+	mmt_bin_end();
+}
 
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 {
@@ -654,6 +673,8 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 	}
 	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
 		mmt_bin_flush();
+	else if (syscallno == __NR_write)
+		mmt_pre_write(args);
 }
 
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)

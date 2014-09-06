@@ -35,6 +35,7 @@ struct mmt_trace_file {
 extern int mmt_trace_opens;
 extern struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
 extern int mmt_trace_all_files;
+extern int mmt_trace_stdout_stderr;
 
 void mmt_free_region(struct mmt_mmap_data *m);
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
