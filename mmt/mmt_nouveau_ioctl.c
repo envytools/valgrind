@@ -93,7 +93,7 @@ void mmt_nouveau_ioctl_pre(UWord *args)
 		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
 }
 
-void mmt_nouveau_ioctl_post(UWord *args)
+void mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 {
 	int fd = args[0];
 	UInt id = args[1];
