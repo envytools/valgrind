@@ -37,27 +37,27 @@ static int trace_mark_fd;
 static int trace_mark_cnt = 0;
 
 /*
- * Binary format message subtypes:
- *     a = allocate map
- *     b = bind
- *     c = create object
- *     d = destroy object
- *     e = deallocate map
- *     g = gpu map
- *     h = gpu unmap
+ * Binary format message subtypes: (some of them are not used anymore, so they are reserved)
+ *     a = reserved (allocate map)
+ *     b = reserved (bind)
+ *     c = reserved (create object)
+ *     d = reserved (destroy object)
+ *     e = reserved (deallocate map)
+ *     g = reserved (gpu map)
+ *     h = reserved (gpu unmap)
  *     i = ioctl before
  *     j = ioctl after
  *     k = mark (mmiotrace)
- *     l = call method
+ *     l = reserved (call method)
  *     m = mmap
  *     o = memory dump
- *     p = create mapped object
+ *     p = reserved (create mapped object)
  *     P = nouveau's GEM_PUSHBUF data
- *     r = create driver object
- *     t = create dma object
- *     v = create device object
- *     x = create context object
- *     1 = call method data
+ *     r = reserved (create driver object)
+ *     t = reserved (create dma object)
+ *     v = reserved (create device object)
+ *     x = reserved (create context object)
+ *     1 = reserved (call method data)
  *     4 = ioctl 4d
  *
  */
@@ -93,7 +93,6 @@ static struct mmt_mmap_data *get_nvidia_mapping(Off64T offset)
 
 	return mmt_add_region(0, 0, 0, offset, 0, 0, 0);
 }
-
 
 static Addr release_nvidia_mapping(Off64T offset)
 {
@@ -418,6 +417,7 @@ void mmt_nv_ioctl_pre(UWord *args)
 		{
 			struct nvrm_ioctl_unk4d_old *s = (void *)data;
 
+			// todo: convert to dumpmem once spotted
 			mmt_bin_write_1('n');
 			mmt_bin_write_1('4');
 			mmt_bin_write_str((void *)(unsigned long)s->ptr);
