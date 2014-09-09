@@ -90,7 +90,10 @@ void mmt_nouveau_ioctl_pre(UWord *args)
 			mmt_nouveau_pushbuf((void *)data);
 	}
 	else
+	{
+		mmt_bin_flush();
 		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
+	}
 }
 
 void mmt_nouveau_ioctl_post(UWord *args, SysRes res)
@@ -115,7 +118,10 @@ void mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 		mmt_bin_end();
 	}
 	else
+	{
+		mmt_bin_flush();
 		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
+	}
 }
 
 void mmt_nouveau_ioctl_pre_clo_init(void)
