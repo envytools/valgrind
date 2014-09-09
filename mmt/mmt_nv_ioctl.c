@@ -468,9 +468,6 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 	if (!data)
 		return;
 
-	if (sr_Res(res) || sr_isError(res))
-		VG_(message)(Vg_UserMsg, "ioctl result: %ld (0x%lx), iserr: %d, err: %ld (0x%lx)\n", sr_Res(res), sr_Res(res), sr_isError(res), sr_Err(res), sr_Err(res));
-
 	if (mmt_trace_marks)
 	{
 		char buf[50];
@@ -496,6 +493,9 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 	}
 	else
 		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
+
+	if (sr_Res(res) || sr_isError(res))
+		VG_(message)(Vg_UserMsg, "ioctl result: %ld (0x%lx), iserr: %d, err: %ld (0x%lx)\n", sr_Res(res), sr_Res(res), sr_isError(res), sr_Err(res), sr_Err(res));
 
 	switch (id)
 	{
