@@ -336,6 +336,22 @@ static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 	}
 }
 
+static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mthd, void *ptr, int size)
+{
+	struct nvrm_ioctl_call call;
+	VG_(memset)(&call, 0, sizeof(call));
+	call.cid = cid;
+	call.handle = handle;
+	call.mthd = mthd;
+	call.ptr = (unsigned long) ptr;
+	call.size = size;
+	UWord ioctlargs[3] = { fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call };
+
+	mmt_nv_ioctl_pre(ioctlargs);
+	SysRes ioctlres = VG_(do_syscall3)(__NR_ioctl, fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call);
+	mmt_nv_ioctl_post(ioctlargs, ioctlres);
+}
+
 void mmt_nv_ioctl_pre(UWord *args)
 {
 	int fd = args[0];
@@ -615,18 +631,8 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 				struct nvrm_mthd_subdevice_get_chipset chip;
 				VG_(memset)(&chip, 0, sizeof(chip));
 
-				struct nvrm_ioctl_call call;
-				VG_(memset)(&call, 0, sizeof(call));
-				call.cid = s->cid;
-				call.handle = s->handle;
-				call.mthd = NVRM_MTHD_SUBDEVICE_GET_CHIPSET;
-				call.ptr = (unsigned long) &chip;
-				call.size = sizeof(chip);
-				UWord ioctlargs[3] = { fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call };
-
-				mmt_nv_ioctl_pre(ioctlargs);
-				SysRes ioctlres = VG_(do_syscall3)(__NR_ioctl, fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call);
-				mmt_nv_ioctl_post(ioctlargs, ioctlres);
+				inject_ioctl_call(fd, s->cid, s->handle, NVRM_MTHD_SUBDEVICE_GET_CHIPSET,
+					&chip, sizeof(chip));
 			}
 
 			break;
