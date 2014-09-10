@@ -293,7 +293,7 @@ struct nvrm_mthd_subdevice_unk1201 {
 
 struct nvrm_mthd_subdevice_fb_get_params {
 	uint32_t cnt;
-	uint32_t _pad;
+	uint32_t unk04;
 	uint64_t ptr; /* key:value */
 };
 #define NVRM_PARAM_SUBDEVICE_FB_BUS_WIDTH	11
@@ -389,7 +389,8 @@ struct nvrm_mthd_fifo_ib_object_info {
 #define NVRM_FIFO_ENG_GRAPH 1
 #define NVRM_FIFO_ENG_COPY0 2
 };
-#define NVRM_MTHD_FIFO_IB_OBJECT_INFO 0x906f0101
+#define NVRM_MTHD_FIFO_IB_OBJECT_INFO  0x906f0101
+#define NVRM_MTHD_FIFO_IB_OBJECT_INFO2 0xa06f0101
 
 struct nvrm_mthd_fifo_ib_activate {
 	uint8_t unk00;
