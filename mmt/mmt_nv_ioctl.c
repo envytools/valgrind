@@ -530,7 +530,7 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 			dumpmem("out", s->ptr, 0x3C);
 			break;
 		}
-		case NVRM_IOCTL_HOST_MAP: // Allocate map for existing object
+		case NVRM_IOCTL_HOST_MAP:
 		{
 			struct nvrm_ioctl_host_map *s = (void *)data;
 
@@ -543,16 +543,15 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 
 			break;
 		}
-		case NVRM_IOCTL_HOST_UNMAP: // Deallocate map for existing object
+		case NVRM_IOCTL_HOST_UNMAP:
 		{
 			struct nvrm_ioctl_host_unmap *s = (void *)data;
-			/// XXX some currently mapped memory might be orphaned
 
 			release_nvidia_mapping(s->foffset);
 
 			break;
 		}
-		case NVRM_IOCTL_CREATE_VSPACE: // Allocate map (also create object)
+		case NVRM_IOCTL_CREATE_VSPACE:
 		{
 			struct nvrm_ioctl_create_vspace *s = (void *)data;
 			if (s->foffset == 0)
@@ -569,8 +568,6 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		case NVRM_IOCTL_DESTROY:
 		{
 			struct nvrm_ioctl_destroy *s = (void *)data;
-			/// XXX some currently mapped memory might be orphaned
-
 			release_nvidia_mapping2(s->parent, s->handle);
 			break;
 		}
