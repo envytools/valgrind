@@ -27,6 +27,7 @@
 #include "coregrind/pub_core_syscall.h"
 #include "nvrm_ioctl.h"
 #include "nvrm_mthd.h"
+#include "nvrm_query.h"
 
 #include <sys/select.h>
 
@@ -336,6 +337,24 @@ static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 	}
 }
 
+static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s, int in)
+{
+	void *ptr = (void *)(unsigned long)s->ptr;
+	const char *str;
+	if (in)
+		str = "in";
+	else
+		str = "out";
+
+	dumpmem(str, s->ptr, s->size);
+
+	if (s->query == NVRM_QUERY_OBJECT_CLASSES)
+	{
+		struct nvrm_query_object_classes *q = ptr;
+		dumpmem(str, q->ptr, q->cnt * 4);
+	}
+}
+
 static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mthd, void *ptr, int size)
 {
 	struct nvrm_ioctl_call call;
@@ -413,8 +432,7 @@ void mmt_nv_ioctl_pre(UWord *args)
 		}
 		case NVRM_IOCTL_QUERY:
 		{
-			struct nvrm_ioctl_query *s = (void *)data;
-			dumpmem("in ", s->ptr, s->size);
+			handle_nvrm_ioctl_query((void *)data, 1);
 			break;
 		}
 		case NVRM_IOCTL_CALL:
@@ -604,14 +622,7 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		}
 		case NVRM_IOCTL_QUERY:
 		{
-			struct nvrm_ioctl_query *s = (void *)data;
-
-			UInt *addr2 = (UInt *)(unsigned long)s->ptr;
-			dumpmem("out", s->ptr, s->size);
-			if (s->query == 0x14c && addr2[2])
-				// List supported object types
-				dumpmem("out2 ", addr2[2], addr2[0] * 4);
-
+			handle_nvrm_ioctl_query((void *)data, 0);
 			break;
 		}
 		case NVRM_IOCTL_CREATE:
