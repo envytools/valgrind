@@ -425,9 +425,9 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_UNK41:
 		{
 			struct nvrm_ioctl_unk41 *s = (void *)data;
-			dumpmem("in", s->ptr1, 4);
-			dumpmem("in", s->ptr2, 4);
-			dumpmem("in", s->ptr3, 4);
+			dumpmem("in", s->ptr1, 4 * s->cnt);
+			dumpmem("in", s->ptr2, 4 * s->cnt);
+			dumpmem("in", s->ptr3, 4 * s->cnt);
 			break;
 		}
 		case NVRM_IOCTL_UNK4D:
@@ -582,9 +582,9 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		case NVRM_IOCTL_UNK41:
 		{
 			struct nvrm_ioctl_unk41 *s = (void *)data;
-			dumpmem("out", s->ptr1, 4);
-			dumpmem("out", s->ptr2, 4);
-			dumpmem("out", s->ptr3, 4);
+			dumpmem("out", s->ptr1, 4 * s->cnt);
+			dumpmem("out", s->ptr2, 4 * s->cnt);
+			dumpmem("out", s->ptr3, 4 * s->cnt);
 			break;
 		}
 		case NVRM_IOCTL_UNK4D:
