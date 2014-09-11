@@ -25,11 +25,13 @@
 #include "pub_tool_libcproc.h"
 #include "pub_tool_vkiscnums.h"
 #include "coregrind/pub_core_syscall.h"
+#include "coregrind/pub_core_aspacemgr.h"
 #include "nvrm_ioctl.h"
 #include "nvrm_mthd.h"
 #include "nvrm_query.h"
 
 #include <sys/select.h>
+#include <sys/mman.h>
 
 #define NVRM_CLASS_SUBDEVICE_0 0x2080
 
@@ -40,6 +42,19 @@ int mmt_trace_nvidia_ioctls = False;
 int mmt_trace_marks = False;
 static int trace_mark_fd;
 static int trace_mark_cnt = 0;
+
+int mmt_ioctl_create_fuzzer = 0;
+
+static void *test_page = NULL;
+static void *inaccessible_page = NULL;
+
+#define MMT_ALLOC_SIZE 4096
+
+#ifdef MMT_64BIT
+#define MMT_INITIAL_OFFSET 0x100000000
+#else
+#define MMT_INITIAL_OFFSET 0x10000000
+#endif
 
 /*
  * Binary format message subtypes: (some of them are not used anymore, so they are reserved)
@@ -216,10 +231,7 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	return 1;
 }
 
-static struct object_type {
-	UInt id;		// type id
-	UInt cargs;		// number of constructor args (uint32)
-} object_types[] =
+struct nv_object_type mmt_nv_object_types[] =
 {
 	{0x0000, 1},
 	{0x0005, 6},
@@ -245,23 +257,42 @@ static struct object_type {
 	{0x4097, 4}, // +NULL
 	{0x309e, 4}, // +NULL
 	{0x009f, 4}, // +NULL
-};
 
-static struct object_type *find_objtype(UInt id)
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+};
+int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_object_types[0]);
+
+static const struct nv_object_type *find_objtype(UInt id)
 {
 	int i;
-	int n = sizeof(object_types) / sizeof(struct object_type);
 
-	for (i = 0; i < n; ++i)
-		if (object_types[i].id == id)
-			return &object_types[i];
+	for (i = 0; i < mmt_nv_object_types_count; ++i)
+		if (mmt_nv_object_types[i].id == id)
+			return &mmt_nv_object_types[i];
 
 	return NULL;
 }
 
+static inline void *u64_to_ptr(uint64_t u)
+{
+	return (void *)(unsigned long)u;
+}
+
+static inline uint64_t ptr_to_u64(void *ptr)
+{
+	return (uint64_t)(unsigned long)ptr;
+}
+
 static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 {
-	void *ptr = (void *)(unsigned long)s->ptr;
+	void *ptr = u64_to_ptr(s->ptr);
 	const char *str;
 	if (in)
 		str = "in";
@@ -339,7 +370,7 @@ static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 
 static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s, int in)
 {
-	void *ptr = (void *)(unsigned long)s->ptr;
+	void *ptr = u64_to_ptr(s->ptr);
 	const char *str;
 	if (in)
 		str = "in";
@@ -362,13 +393,127 @@ static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mt
 	call.cid = cid;
 	call.handle = handle;
 	call.mthd = mthd;
-	call.ptr = (unsigned long) ptr;
+	call.ptr = ptr_to_u64(ptr);
 	call.size = size;
 	UWord ioctlargs[3] = { fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call };
 
 	mmt_nv_ioctl_pre(ioctlargs);
 	SysRes ioctlres = VG_(do_syscall3)(__NR_ioctl, fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call);
 	mmt_nv_ioctl_post(ioctlargs, ioctlres);
+}
+
+static int test_page_available(void)
+{
+	if (test_page)
+		return 1;
+
+	SysRes res, res2;
+	int offset = 0;
+
+	do
+	{
+		res = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset, MMT_ALLOC_SIZE,
+				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (sr_isError(res))
+		{
+			offset += MMT_ALLOC_SIZE;
+			continue;
+		}
+		res2 = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset + MMT_ALLOC_SIZE,
+				MMT_ALLOC_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (sr_isError(res2))
+		{
+			VG_(do_syscall2)(__NR_munmap, sr_Res(res), MMT_ALLOC_SIZE);
+			offset += MMT_ALLOC_SIZE;
+			continue;
+		}
+	}
+	while (sr_isError(res) || sr_isError(res2));
+
+	test_page = (void *)sr_Res(res);
+	inaccessible_page = (void *)sr_Res(res2);
+	return 1;
+}
+
+static int in_fuzzer_mode = 0;
+static void mess_with_ioctl_create(int fd, UInt *data)
+{
+	struct nvrm_ioctl_create *s = (void *)data;
+
+	if (!s->ptr || in_fuzzer_mode || !test_page_available())
+		return;
+
+	if (mmt_ioctl_create_fuzzer == 1 && find_objtype(s->cls) != NULL)
+		return;
+
+	// Kernel does not handle IOCTL_DESTROY for this class, so when userspace
+	// tries to create this object the 2nd time, kernel returns OBJECT_ERROR.
+	// And it pushes the driver into a state with abysmal performance (<2 FPS
+	// for glxgears)...
+	// Comment out if you really want to trace that.
+	if (s->cls == 0x0079)
+		return;
+
+	struct nvrm_ioctl_create create;
+	int test_size = 0;
+	SysRes res;
+	int err;
+
+	mmt_bin_flush();
+	VG_(message)(Vg_UserMsg,
+			"trying to detect minimal argument size for class 0x%04x\n", s->cls);
+	uint32_t cid = s->cid;
+	uint32_t parent = s->parent;
+	uint32_t handle = s->handle;
+	do
+	{
+		VG_(memcpy)(&create, s, sizeof(create));
+
+		test_size++;
+		create.ptr = ptr_to_u64(inaccessible_page) - test_size;
+		VG_(memcpy)(u64_to_ptr(create.ptr), u64_to_ptr(s->ptr), test_size);
+
+		UWord args[3] = { fd, (UWord)NVRM_IOCTL_CREATE, (UWord)&create };
+
+		in_fuzzer_mode = 1;
+		mmt_nv_ioctl_pre(args);
+		res = VG_(do_syscall3)(__NR_ioctl, args[0], args[1], args[2]);
+		mmt_nv_ioctl_post(args, res);
+		in_fuzzer_mode = 0;
+		err = (sr_isError(res) || create.status != NVRM_STATUS_SUCCESS) ? 1 : 0;
+	}
+	while (err && test_size < 4000);
+
+	if (!err)
+	{
+		dumpmem("out", create.ptr, test_size);
+		mmt_bin_flush();
+		VG_(message)(Vg_UserMsg,
+				"minimal argument size for class 0x%04x: %d bytes (%d words)\n", s->cls, test_size, test_size / 4);
+
+		if (s->cls == 0)
+			cid = parent = handle = ((uint32_t *)u64_to_ptr(create.ptr))[0];
+		struct nvrm_ioctl_destroy destroy;
+		destroy.cid = cid;
+		destroy.parent = parent;
+		destroy.handle = handle;
+		destroy.status = 0;
+
+		UWord args[3] = { fd, (UWord)NVRM_IOCTL_DESTROY, (UWord)&destroy };
+
+		in_fuzzer_mode = 1;
+		mmt_nv_ioctl_pre(args);
+		res = VG_(do_syscall3)(__NR_ioctl, args[0], args[1], args[2]);
+		mmt_nv_ioctl_post(args, res);
+		in_fuzzer_mode = 0;
+
+	}
+	else
+	{
+		mmt_bin_flush();
+		VG_(message)(Vg_UserMsg,
+				"could not detect minimal argument size for class 0x%04x\n", s->cls);
+	}
 }
 
 void mmt_nv_ioctl_pre(UWord *args)
@@ -394,6 +539,9 @@ void mmt_nv_ioctl_pre(UWord *args)
 		mmt_bin_write_str(buf);
 		mmt_bin_end();
 	}
+
+	if (id == NVRM_IOCTL_CREATE && mmt_ioctl_create_fuzzer)
+		mess_with_ioctl_create(fd, data);
 
 	if ((id & 0x0000FF00) == 0x4600)
 	{
@@ -461,7 +609,7 @@ void mmt_nv_ioctl_pre(UWord *args)
 			// todo: convert to dumpmem once spotted
 			mmt_bin_write_1('n');
 			mmt_bin_write_1('4');
-			mmt_bin_write_str((void *)(unsigned long)s->ptr);
+			mmt_bin_write_str(u64_to_ptr(s->ptr));
 			mmt_bin_end();
 			break;
 		}
@@ -482,10 +630,19 @@ void mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_CREATE:
 		{
 			struct nvrm_ioctl_create *s = (void *)data;
-			struct object_type *objtype = find_objtype(s->cls);
+			const struct nv_object_type *objtype = find_objtype(s->cls);
 
-			if (s->ptr && objtype)
+			if (s->ptr && objtype && !in_fuzzer_mode)
+			{
 				dumpmem("in ", s->ptr, objtype->cargs * 4);
+				if (mmt_ioctl_create_fuzzer == 1 && test_page_available())
+				{
+					((uint64_t *)test_page)[0] = s->ptr;
+					uint64_t tmp_addr = ptr_to_u64(inaccessible_page) - objtype->cargs * 4;
+					VG_(memcpy)(u64_to_ptr(tmp_addr), u64_to_ptr(s->ptr), objtype->cargs * 4);
+					s->ptr = tmp_addr;
+				}
+			}
 
 			break;
 		}
@@ -515,6 +672,20 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		mmt_bin_write_1('k');
 		mmt_bin_write_str(buf);
 		mmt_bin_end();
+	}
+
+	if (id == NVRM_IOCTL_CREATE && mmt_ioctl_create_fuzzer == 1)
+	{
+		struct nvrm_ioctl_create *s = (void *)data;
+		const struct nv_object_type *objtype = find_objtype(s->cls);
+
+		// restore arguments pointer before dumping ioctl data
+		if (s->ptr && objtype && !in_fuzzer_mode && test_page_available())
+		{
+			uint64_t orig_addr = ((uint64_t *)test_page)[0];
+			VG_(memcpy)(u64_to_ptr(orig_addr), u64_to_ptr(s->ptr), objtype->cargs * 4);
+			s->ptr = orig_addr;
+		}
 	}
 
 	if ((id & 0x0000FF00) == 0x4600)
@@ -628,12 +799,12 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		case NVRM_IOCTL_CREATE:
 		{
 			struct nvrm_ioctl_create *s = (void *)data;
-			struct object_type *objtype = find_objtype(s->cls);
+			const struct nv_object_type *objtype = find_objtype(s->cls);
 
-			if (s->ptr && objtype)
+			if (s->ptr && objtype && !in_fuzzer_mode)
 				dumpmem("out", s->ptr, objtype->cargs * 4);
 
-			if (s->cls == NVRM_CLASS_SUBDEVICE_0)
+			if (s->cls == NVRM_CLASS_SUBDEVICE_0 && !in_fuzzer_mode)
 			{
 				// inject GET_CHIPSET ioctl
 				struct nvrm_mthd_subdevice_get_chipset chip;
