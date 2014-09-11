@@ -56,6 +56,92 @@ static void *inaccessible_page = NULL;
 #define MMT_INITIAL_OFFSET 0x10000000
 #endif
 
+struct nv_object_type mmt_nv_object_types[] =
+{
+	{0x0000, 1},
+
+	{0x0005, 6},
+
+	{0x0019, 4},
+
+	{0x0039, 4},
+
+	{0x0041, 1},
+
+	{0x0043, 4},
+
+	{0x0044, 4},
+
+	{0x004a, 4},
+
+	{0x3062, 4},
+
+	{0x3066, 4},
+
+	{0x406e, 8},
+
+	{0x506f, 8},
+	{0x826f, 8},
+	{0x906f, 8},
+
+	{0x8270, 1},
+	{0x8570, 1},
+
+	{0x0072, 4},
+	{0x5072, 3},
+	{0x9072, 3},
+
+	{0x0073, 0},
+
+	{0x0079, 6},
+	{0x5079, 2},
+
+	{0x827a, 4},
+	{0x857a, 4},
+
+	{0x307b, 4},
+
+	{0x357c, 3},
+	{0x827c, 8},
+	{0x857c, 8},
+
+	{0x827d, 8},
+	{0x857d, 8},
+
+	{0x0080, 8},
+	{0x2080, 1},
+
+	{0x3089, 4},
+
+	{0x308a, 4},
+
+	{0x9096, 0},
+
+	{0x4097, 4},
+	{0x8297, 4},
+	{0x8597, 4},
+	{0x9197, 4},
+
+	{0x309e, 4},
+
+	{0x009f, 4},
+
+	{0x85b5, 2},
+	{0x90b5, 2},
+
+	{0x00f1, 6},
+
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+	{-1, 0},
+};
+int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_object_types[0]);
+
 /*
  * Binary format message subtypes: (some of them are not used anymore, so they are reserved)
  *     a = reserved (allocate map)
@@ -230,64 +316,6 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 
 	return 1;
 }
-
-struct nv_object_type mmt_nv_object_types[] =
-{
-	{0x0000, 1},
-	{0x0005, 6},
-	{0x0019, 4}, // +NULL
-	{0x0039, 4}, // +NULL
-	{0x0041, 1},
-	{0x0043, 4}, // +NULL
-	{0x0044, 4}, // +NULL
-	{0x004a, 4}, // +NULL
-	{0x3062, 4}, // +NULL
-	{0x3066, 4}, // +NULL
-	{0x406e, 8},
-	{0x0072, 4}, // +NULL
-	{0x0073, 0},
-	{0x0079, 6},
-	{0x307b, 4}, // +NULL
-	{0x357c, 3}, // +NULL
-	{0x0080, 8},
-	{0x2080, 1},
-	{0x3089, 4}, // +NULL
-	{0x308a, 4}, // +NULL
-	{0x9096, 0},
-	{0x4097, 4}, // +NULL
-	{0x309e, 4}, // +NULL
-	{0x009f, 4}, // +NULL
-	{0x5079, 2},
-	{0x506f, 8},
-	{0x5072, 3},
-	{0x85b5, 2},
-	{0x8570, 1},
-	{0x857d, 8},
-	{0x826f, 8},
-	{0x857a, 4},
-	{0x857c, 8},
-	{0x8597, 4},
-	{0x00f1, 6},
-	{0x8270, 1},
-	{0x827d, 8},
-	{0x827a, 4},
-	{0x827c, 8},
-	{0x8297, 4},
-	{0x906f, 8},
-	{0x9072, 3},
-	{0x9197, 4},
-	{0x90b5, 2},
-
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-	{-1, 0},
-};
-int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_object_types[0]);
 
 static const struct nv_object_type *find_objtype(UInt id)
 {
