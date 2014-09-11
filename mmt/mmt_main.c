@@ -44,6 +44,8 @@
 #define TM_OPT "--mmt-trace-marks"
 #define TV_OPT "--mmt-trace-nouveau-ioctls"
 #define TS_OPT "--mmt-trace-stdout-stderr"
+#define FZ_OPT "--mmt-ioctl-create-fuzzer="
+#define OT_OPT "--mmt-object-ctr="
 
 static Bool mmt_process_cmd_line_option(const HChar *arg)
 {
@@ -92,21 +94,61 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 		mmt_trace_stdout_stderr = True;
 		return True;
 	}
+	else if (VG_(strncmp)(arg, FZ_OPT, VG_(strlen(FZ_OPT))) == 0)
+	{
+		const HChar *val = arg + VG_(strlen(FZ_OPT));
+		if (val[0] >= '0' && val[0] <= '2')
+		{
+			mmt_ioctl_create_fuzzer = val[0] - '0';
+			return True;
+		}
+		return False;
+	}
+	else if (VG_(strncmp)(arg, OT_OPT, VG_(strlen(OT_OPT))) == 0)
+	{
+		const HChar *val = arg + VG_(strlen(OT_OPT));
+		HChar *comma = VG_(strchr)(val, ',');
+		if (!comma)
+			return False;
+		*comma = 0;
+
+		Long cls = VG_(strtoll16)(val, NULL);
+		Long sz = VG_(strtoll10)(comma + 1, NULL);
+		int i;
+		for (i = 0; i < mmt_nv_object_types_count; ++i)
+			if (mmt_nv_object_types[i].id == cls)
+			{
+				mmt_nv_object_types[i].cargs = sz;
+				return True;
+			}
+		for (i = 0; i < mmt_nv_object_types_count; ++i)
+			if (mmt_nv_object_types[i].id == -1)
+			{
+				mmt_nv_object_types[i].id = cls;
+				mmt_nv_object_types[i].cargs = sz;
+				return True;
+			}
+
+		// not enough space
+		return False;
+	}
 
 	return False;
 }
 
 static void mmt_print_usage(void)
 {
-	VG_(printf)("    " TF_OPT "path     trace loads and stores to memory mapped for\n"
-		"                              this file (e.g. /dev/nvidia0) (you can pass \n"
-		"                              this option multiple times)\n");
-	VG_(printf)("    " TA_OPT     "     trace loads and stores to memory mapped for all files\n");
-	VG_(printf)("    " TN_OPT         " trace nvidia ioctls on /dev/nvidiactl and /dev/nvidia0\n");
-	VG_(printf)("    " TV_OPT      "    trace nouveau ioctls on /dev/dri/cardX\n");
-	VG_(printf)("    " TO_OPT     "     trace all 'open' syscalls\n");
-	VG_(printf)("    " TM_OPT "         send mmiotrace marks before and after ioctls\n");
-	VG_(printf)("    " TS_OPT         " trace writes to stdout and stderr\n");
+	VG_(printf)("    " TF_OPT "path       trace loads and stores to memory mapped for\n"
+		 "                                this file (e.g. /dev/nvidia0) (you can pass \n"
+		 "                                this option multiple times)\n");
+	VG_(printf)("    " TA_OPT     "       trace loads and stores to memory mapped for all files\n");
+	VG_(printf)("    " TN_OPT         "   trace nvidia ioctls on /dev/nvidiactl and /dev/nvidia0\n");
+	VG_(printf)("    " TV_OPT          "  trace nouveau ioctls on /dev/dri/cardX\n");
+	VG_(printf)("    " TO_OPT     "       trace all 'open' syscalls\n");
+	VG_(printf)("    " TM_OPT "           send mmiotrace marks before and after ioctls\n");
+	VG_(printf)("    " TS_OPT         "   trace writes to stdout and stderr\n");
+	VG_(printf)("    " FZ_OPT          "  0-disabled (default), 1-enabled (safe), 2-enabled (unsafe)\n");
+	VG_(printf)("    " OT_OPT          "class,cargs sets the number of u32 constructor args(dec) for specified class(hex)\n");
 }
 
 static void mmt_print_debug_usage(void)
