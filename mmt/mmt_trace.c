@@ -31,7 +31,20 @@
 #include "pub_tool_vkiscnums.h"
 #include "pub_tool_debuginfo.h"
 #include "pub_tool_libcassert.h"
-
+/*
+ * Binary format message types: (some of them are not used anymore, so they are reserved)
+ *     = = text
+ *     - = text
+ *     e = mremap syscall
+ *     m = reserved (old mmap syscall)
+ *     M = mmap syscall
+ *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
+ *     o = open syscall
+ *     r = memory read
+ *     t = write syscall
+ *     u = munmap syscall
+ *     w = memory write
+ */
 static struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
 static int mmt_last_region = -1;
 
@@ -738,8 +751,8 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 {
 	Addr start = args[0];
 	unsigned long len = args[1];
-//	unsigned long prot = args[2];
-//	unsigned long flags = args[3];
+	unsigned long prot = args[2];
+	unsigned long flags = args[3];
 	unsigned long fd = args[4];
 	unsigned long offset = args[5];
 	int i;
@@ -769,8 +782,11 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 
 	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0, 0, 0);
 
-	mmt_bin_write_1('m');
+	mmt_bin_write_1('M');
 	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(prot);
+	mmt_bin_write_4(flags);
+	mmt_bin_write_4(fd);
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(len);
