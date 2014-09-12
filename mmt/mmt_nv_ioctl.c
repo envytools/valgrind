@@ -472,6 +472,11 @@ static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 		struct nvrm_mthd_subdevice_unk0512 *m = ptr;
 		mthd_dumpmem(str, &m->ptr, m->size, in);
 	}
+	else if (s->mthd == NVRM_MTHD_SUBDEVICE_GET_FIFO_CLASSES)
+	{
+		struct nvrm_mthd_subdevice_get_fifo_classes *m = ptr;
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
+	}
 
 	if (!in)
 		dumpmem(str, s->ptr, s->size);
