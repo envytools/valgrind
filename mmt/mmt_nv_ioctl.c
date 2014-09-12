@@ -44,6 +44,7 @@ static int trace_mark_fd;
 static int trace_mark_cnt = 0;
 
 int mmt_ioctl_create_fuzzer = 0;
+int mmt_ioctl_call_fuzzer = 0;
 
 static void *test_page = NULL;
 static void *inaccessible_page = NULL;
@@ -338,6 +339,60 @@ static inline uint64_t ptr_to_u64(void *ptr)
 	return (uint64_t)(unsigned long)ptr;
 }
 
+static int test_page_available(void)
+{
+	if (test_page)
+		return 1;
+
+	SysRes res, res2;
+	int offset = 0;
+
+	do
+	{
+		res = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset, MMT_ALLOC_SIZE,
+				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (sr_isError(res))
+		{
+			offset += MMT_ALLOC_SIZE;
+			continue;
+		}
+		res2 = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset + MMT_ALLOC_SIZE,
+				MMT_ALLOC_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (sr_isError(res2))
+		{
+			VG_(do_syscall2)(__NR_munmap, sr_Res(res), MMT_ALLOC_SIZE);
+			offset += MMT_ALLOC_SIZE;
+			continue;
+		}
+	}
+	while (sr_isError(res) || sr_isError(res2));
+
+	test_page = (void *)sr_Res(res);
+	inaccessible_page = (void *)sr_Res(res2);
+	return 1;
+}
+
+static void mthd_dumpmem(const char *str, uint64_t *ptr, uint32_t len, int in)
+{
+	if (mmt_ioctl_call_fuzzer == 1 && !in && *ptr && test_page_available())
+	{
+		// restore arguments pointer before dumping ioctl data
+		uint64_t orig_addr = ((uint64_t *)test_page)[0];
+		VG_(memcpy)(u64_to_ptr(orig_addr), u64_to_ptr(*ptr), len);
+		*ptr = orig_addr;
+	}
+
+	dumpmem(str, *ptr, len);
+
+	if (mmt_ioctl_call_fuzzer == 1 && in && *ptr && test_page_available())
+	{
+		((uint64_t *)test_page)[0] = *ptr;
+		uint64_t tmp_addr = ptr_to_u64(inaccessible_page) - len;
+		VG_(memcpy)(u64_to_ptr(tmp_addr), u64_to_ptr(*ptr), len);
+		*ptr = tmp_addr;
+	}
+}
+
 static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 {
 	void *ptr = u64_to_ptr(s->ptr);
@@ -347,73 +402,79 @@ static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 	else
 		str = "out";
 
-	dumpmem(str, s->ptr, s->size);
+	if (in)
+		dumpmem(str, s->ptr, s->size);
 
 	if (s->mthd == 0x10000002)
 	{
 		UInt *addr2 = ptr;
+		//FIXME: this is probably going to crash on 64-bit systems
+		//TODO:  convert to mthd_dumpmem once above will be fixed
 		dumpmem(str, addr2[2], 0x3c);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_BAR0)
 	{
 		struct nvrm_mthd_subdevice_bar0 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4 * 8);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 8, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_GET_CLASSES)
 	{
 		struct nvrm_mthd_device_get_classes *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_FB_GET_PARAMS)
 	{
 		struct nvrm_mthd_subdevice_fb_get_params *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4 * 2);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_BUS_GET_PARAMS)
 	{
 		struct nvrm_mthd_subdevice_bus_get_params *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4 * 2);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1401)
 	{
 		struct nvrm_mthd_device_unk1401 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt);
+		mthd_dumpmem(str, &m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_GET_FIFO_ENGINES)
 	{
 		struct nvrm_mthd_subdevice_get_fifo_engines *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1102)
 	{
 		struct nvrm_mthd_device_unk1102 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt);
+		mthd_dumpmem(str, &m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1701)
 	{
 		struct nvrm_mthd_device_unk1701 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt);
+		mthd_dumpmem(str, &m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK1201)
 	{
 		struct nvrm_mthd_subdevice_unk1201 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4 * 2);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0101)
 	{
 		struct nvrm_mthd_subdevice_unk0101 *m = ptr;
-		dumpmem(str, m->ptr, m->cnt * 4 * 2);
+		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0522)
 	{
 		struct nvrm_mthd_subdevice_unk0522 *m = ptr;
-		dumpmem(str, m->ptr, m->size);
+		mthd_dumpmem(str, &m->ptr, m->size, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0512)
 	{
 		struct nvrm_mthd_subdevice_unk0512 *m = ptr;
-		dumpmem(str, m->ptr, m->size);
+		mthd_dumpmem(str, &m->ptr, m->size, in);
 	}
+
+	if (!in)
+		dumpmem(str, s->ptr, s->size);
 }
 
 static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s, int in)
@@ -448,39 +509,6 @@ static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mt
 	mmt_nv_ioctl_pre(ioctlargs);
 	SysRes ioctlres = VG_(do_syscall3)(__NR_ioctl, fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call);
 	mmt_nv_ioctl_post(ioctlargs, ioctlres);
-}
-
-static int test_page_available(void)
-{
-	if (test_page)
-		return 1;
-
-	SysRes res, res2;
-	int offset = 0;
-
-	do
-	{
-		res = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset, MMT_ALLOC_SIZE,
-				PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if (sr_isError(res))
-		{
-			offset += MMT_ALLOC_SIZE;
-			continue;
-		}
-		res2 = VG_(am_do_mmap_NO_NOTIFY)(MMT_INITIAL_OFFSET + offset + MMT_ALLOC_SIZE,
-				MMT_ALLOC_SIZE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if (sr_isError(res2))
-		{
-			VG_(do_syscall2)(__NR_munmap, sr_Res(res), MMT_ALLOC_SIZE);
-			offset += MMT_ALLOC_SIZE;
-			continue;
-		}
-	}
-	while (sr_isError(res) || sr_isError(res2));
-
-	test_page = (void *)sr_Res(res);
-	inaccessible_page = (void *)sr_Res(res2);
-	return 1;
 }
 
 static int in_fuzzer_mode = 0;
