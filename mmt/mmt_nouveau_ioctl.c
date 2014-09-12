@@ -37,7 +37,10 @@ void mmt_nouveau_ioctl_post_open(UWord *args, SysRes res)
 	if (mmt_trace_nouveau_ioctls)
 	{
 		if (VG_(strncmp)(path, "/dev/dri/card", 13) == 0)
+		{
 			FD_SET(res._val, &nouveau_fds);
+			mmt_dump_open(args, res);
+		}
 	}
 }
 
