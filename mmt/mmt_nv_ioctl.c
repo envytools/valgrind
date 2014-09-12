@@ -263,10 +263,19 @@ void mmt_nv_ioctl_post_open(UWord *args, SysRes res)
 
 	if (mmt_trace_nvidia_ioctls)
 	{
+		int found = 0;
 		if (VG_(strcmp)(path, "/dev/nvidiactl") == 0)
+		{
 			FD_SET(res._val, &nvidiactl_fds);
+			found = 1;
+		}
 		else if (VG_(strncmp)(path, "/dev/nvidia", 11) == 0)
+		{
 			FD_SET(res._val, &nvidia0_fds);
+			found = 1;
+		}
+		if (found)
+			mmt_dump_open(args, res);
 	}
 }
 
