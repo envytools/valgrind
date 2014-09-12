@@ -46,6 +46,7 @@
 #define TS_OPT "--mmt-trace-stdout-stderr"
 #define FZ_OPT "--mmt-ioctl-create-fuzzer="
 #define OT_OPT "--mmt-object-ctr="
+#define FC_OPT "--mmt-ioctl-call-fuzzer="
 
 static Bool mmt_process_cmd_line_option(const HChar *arg)
 {
@@ -132,6 +133,16 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 		// not enough space
 		return False;
 	}
+	else if (VG_(strncmp)(arg, FC_OPT, VG_(strlen(FC_OPT))) == 0)
+	{
+		const HChar *val = arg + VG_(strlen(FC_OPT));
+		if (val[0] >= '0' && val[0] <= '1')
+		{
+			mmt_ioctl_call_fuzzer = val[0] - '0';
+			return True;
+		}
+		return False;
+	}
 
 	return False;
 }
@@ -149,6 +160,7 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TS_OPT         "   trace writes to stdout and stderr\n");
 	VG_(printf)("    " FZ_OPT          "  0-disabled (default), 1-enabled (safe), 2-enabled (unsafe)\n");
 	VG_(printf)("    " OT_OPT          "class,cargs sets the number of u32 constructor args(dec) for specified class(hex)\n");
+	VG_(printf)("    " FC_OPT        "    0-disabled (default), 1-enabled\n");
 }
 
 static void mmt_print_debug_usage(void)
