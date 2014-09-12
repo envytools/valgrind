@@ -158,7 +158,8 @@ int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_obje
  *     j = ioctl after
  *     k = mark (mmiotrace)
  *     l = reserved (call method)
- *     m = mmap
+ *     m = reserved (old mmap)
+ *     M = mmap
  *     o = memory dump
  *     p = reserved (create mapped object)
  *     P = nouveau's GEM_PUSHBUF data
@@ -284,8 +285,8 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 {
 	Addr start = args[0];
 	unsigned long len = args[1];
-//	unsigned long prot = args[2];
-//	unsigned long flags = args[3];
+	unsigned long prot = args[2];
+	unsigned long flags = args[3];
 	unsigned long fd = args[4];
 	unsigned long offset = args[5];
 	struct mmt_mmap_data *region;
@@ -308,8 +309,11 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
 
 	mmt_bin_write_1('n');
-	mmt_bin_write_1('m');
+	mmt_bin_write_1('M');
 	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(prot);
+	mmt_bin_write_4(flags);
+	mmt_bin_write_4(fd);
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(len);
