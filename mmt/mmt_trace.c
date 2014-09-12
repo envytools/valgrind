@@ -690,23 +690,28 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 		mmt_pre_write(args);
 }
 
+void mmt_dump_open(UWord *args, SysRes res)
+{
+	const char *path = (const char *)args[0];
+	int flags = (int)args[1];
+	int mode = (int)args[2];
+
+	mmt_bin_write_1('o');
+	mmt_bin_write_4(flags);
+	mmt_bin_write_4(mode);
+	mmt_bin_write_4(res._val);
+	mmt_bin_write_str(path);
+	mmt_bin_end();
+}
+
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 {
 	const char *path = (const char *)args[0];
 	int i;
 
 	if (mmt_trace_opens)
-	{
-		int flags = (int)args[1];
-		int mode = (int)args[2];
+		mmt_dump_open(args, res);
 
-		mmt_bin_write_1('o');
-		mmt_bin_write_4(flags);
-		mmt_bin_write_4(mode);
-		mmt_bin_write_4(res._val);
-		mmt_bin_write_str(path);
-		mmt_bin_end();
-	}
 	if (res._isError)
 		return;
 
