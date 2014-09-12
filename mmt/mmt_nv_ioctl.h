@@ -6,6 +6,7 @@
 extern int mmt_trace_nvidia_ioctls;
 extern int mmt_trace_marks;
 extern int mmt_ioctl_create_fuzzer;
+extern int mmt_ioctl_call_fuzzer;
 
 struct nv_object_type
 {
