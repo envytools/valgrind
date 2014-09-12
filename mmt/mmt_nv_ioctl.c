@@ -130,6 +130,8 @@ struct nv_object_type mmt_nv_object_types[] =
 	{0x85b5, 2},
 	{0x90b5, 2},
 
+	{0x83de, 3},
+
 	{0x00f1, 6},
 
 	{-1, 0},
