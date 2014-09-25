@@ -84,9 +84,11 @@ struct nv_object_type mmt_nv_object_types[] =
 	{0x506f, 8},
 	{0x826f, 8},
 	{0x906f, 8},
+	{0xa06f, 8},
 
 	{0x8270, 1},
 	{0x8570, 1},
+	{0x9470, 1},
 
 	{0x0072, 4},
 	{0x5072, 3},
@@ -109,7 +111,7 @@ struct nv_object_type mmt_nv_object_types[] =
 	{0x827d, 8},
 	{0x857d, 8},
 
-	{0x0080, 8},
+	{0x0080, 8}, // 10 on maxwell/340.32, TODO
 	{0x2080, 1},
 
 	{0x3089, 4},
@@ -129,6 +131,7 @@ struct nv_object_type mmt_nv_object_types[] =
 
 	{0x85b5, 2},
 	{0x90b5, 2},
+	{0xb0b5, 2},
 
 	{0x83de, 3},
 
