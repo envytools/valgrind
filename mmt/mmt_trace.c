@@ -608,6 +608,7 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 {
 	struct mmt_mmap_data *region;
 	int i;
+	end = (end + VKI_PAGE_SIZE - 1) & ~(VKI_PAGE_SIZE - 1);
 
 #ifdef MMT_DEBUG_VERBOSE
 	VG_(printf)("adding region: <%p, %p>\n", (void *)start, (void *)end);
