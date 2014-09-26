@@ -16,9 +16,9 @@ test: test32 test64
 test32: mmaptest32
 	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero ./mmaptest32 >mmaptest32.out1.tmp 2>mmaptest32.out2.tmp || (cat mmaptest32.out1.tmp && cat mmaptest32.out2.tmp && false)
 	@cat mmaptest32.out1.tmp | diff -u mmaptest32.out1 -
-	@cat mmaptest32.out2.tmp | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest32.out2 -
+	@cat mmaptest32.out2.tmp | mmt_bin2dedma | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest32.out2 -
 
 test64: mmaptest64
 	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero ./mmaptest64 >mmaptest64.out1.tmp 2>mmaptest64.out2.tmp || (cat mmaptest64.out1.tmp && cat mmaptest64.out2.tmp && false)
 	@cat mmaptest64.out1.tmp | diff -u mmaptest64.out1 -
-	@cat mmaptest64.out2.tmp | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest64.out2 -
+	@cat mmaptest64.out2.tmp | mmt_bin2dedma | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest64.out2 -
