@@ -310,7 +310,7 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 		return 0;
 
 	region = mmt_find_region_by_fd_offset(fd, offset * offset_unit);
-	if (!region)
+	if (!region || region->start)
 		return 0;
 
 	tmp = *region;
