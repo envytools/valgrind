@@ -1229,6 +1229,38 @@
 /memcheck/tests/x86-solaris/ldsoexec
 /memcheck/tests/x86-solaris/scalar
 
+# /mmt/
+/mmt/*.dSYM
+/mmt/*.so
+/mmt/.deps
+/mmt/Makefile
+/mmt/Makefile.in
+/mmt/mmt-*-darwin
+/mmt/mmt-*-linux
+/mmt/mmt-*-solaris
+
+# /mmt/mmaptest/
+/mmt/mmaptest/*.stderr.diff
+/mmt/mmaptest/*.stderr.out
+/mmt/mmaptest/*.stdout.diff
+/mmt/mmaptest/*.stdout.out
+/mmt/mmaptest/*.tmp
+/mmt/mmaptest/.deps
+/mmt/mmaptest/Makefile
+/mmt/mmaptest/Makefile.in
+/mmt/mmaptest/mmaptest32
+/mmt/mmaptest/mmaptest64
+/mmt/mmaptest/unaligned64
+
+# /mmt/tests/
+/mmt/tests/*.stderr.diff
+/mmt/tests/*.stderr.out
+/mmt/tests/*.stdout.diff
+/mmt/tests/*.stdout.out
+/mmt/tests/.deps
+/mmt/tests/Makefile
+/mmt/tests/Makefile.in
+
 # /mpi/
 /mpi/*.dSYM
 /mpi/*.so
