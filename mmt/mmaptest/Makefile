@@ -12,7 +12,7 @@ unaligned64: unaligned.c
 	@gcc -m64 unaligned.c -Wall -o unaligned64
 
 clean:
-	@rm -f mmaptest32 mmaptest64 mmaptest32.out1.tmp mmaptest32.out2.tmp mmaptest64.out1.tmp mmaptest64.out2.tmp
+	@rm -f mmaptest32 mmaptest64 mmaptest32.out1.tmp mmaptest32.out2.tmp mmaptest64.out1.tmp mmaptest64.out2.tmp unaligned64 unaligned64.out1.tmp unaligned64.out2.tmp
 
 test: test32 test64 test_unaligned64
 
