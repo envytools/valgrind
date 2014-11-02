@@ -228,8 +228,6 @@ static maybe_unused void __verify_state(void)
 		mmt_assert2(pos1->fd == 0, "%d", pos1->fd);
 		mmt_assert2(pos1->id == 0, "%u", pos1->id);
 		mmt_assert2(pos1->offset == 0, "%lld", pos1->offset);
-		mmt_assert2(pos1->data1 == 0, "%lu", pos1->data1);
-		mmt_assert2(pos1->data2 == 0, "%lu", pos1->data2);
 	}
 
 	if (last_used_region && last_used_region != &null_region)
@@ -437,26 +435,6 @@ struct mmt_mmap_data *mmt_find_region_by_fdset_offset(fd_set *fds, Off64T offset
 	return fd0_region;
 }
 
-struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UWord data2)
-{
-	int i;
-	struct mmt_mmap_data *fd0_region = NULL;
-
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		struct mmt_mmap_data *region = &mmt_mmaps[i];
-		if (region->data1 == data1 && region->data2 == data2)
-		{
-			if (FD_ISSET(region->fd, fds))
-				return region;
-			if (region->fd == 0)
-				fd0_region = region;
-		}
-	}
-
-	return fd0_region;
-}
-
 static void remove_neg_region(int idx)
 {
 	VG_(memmove)(&neg_regions[idx], &neg_regions[idx + 1], (neg_regions_number - idx - 1) * sizeof(neg_regions[0]));
@@ -604,7 +582,7 @@ void mmt_free_region(struct mmt_mmap_data *m)
 }
 
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
-		Off64T offset, UInt id, UWord data1, UWord data2)
+		Off64T offset, UInt id)
 {
 	struct mmt_mmap_data *region;
 	int i;
@@ -652,8 +630,6 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	region->start = start;
 	region->end = end;
 	region->offset = offset;
-	region->data1 = data1;
-	region->data2 = data2;
 
 	verify_state();
 
@@ -786,7 +762,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	if (mmt_nv_ioctl_post_mmap(args, res, offset_unit))
 		return;
 
-	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0, 0, 0);
+	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0);
 
 	mmt_bin_write_1('M');
 	mmt_bin_write_8(region->offset);
@@ -818,8 +794,8 @@ static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(region->end - region->start);
-	mmt_bin_write_8(region->data1);
-	mmt_bin_write_8(region->data2);
+	mmt_bin_write_8(0);
+	mmt_bin_write_8(0);
 	mmt_bin_end();
 
 	mmt_free_region(region);
@@ -843,15 +819,15 @@ static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 
 	tmp = *region;
 	mmt_free_region(region);
-	region = mmt_add_region(tmp.fd, res._val, res._val + new_len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
+	region = mmt_add_region(tmp.fd, res._val, res._val + new_len, tmp.offset, tmp.id);
 
 	mmt_bin_write_1('e');
 	mmt_bin_write_8(region->offset);
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(start);
 	mmt_bin_write_8(old_len);
-	mmt_bin_write_8(region->data1);
-	mmt_bin_write_8(region->data2);
+	mmt_bin_write_8(0);
+	mmt_bin_write_8(0);
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(region->end - region->start);
 	mmt_bin_end();
