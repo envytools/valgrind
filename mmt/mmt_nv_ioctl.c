@@ -196,47 +196,6 @@ void mmt_nv_ioctl_post_clo_init(void)
 	}
 }
 
-static struct mmt_mmap_data *get_nvidia_mapping(Off64T offset)
-{
-	struct mmt_mmap_data *region;
-
-	region = mmt_find_region_by_fdset_offset(&nvidia0_fds, offset);
-	if (region)
-		return region;
-
-	return mmt_add_region(0, 0, 0, offset, 0, 0, 0);
-}
-
-static Addr release_nvidia_mapping(Off64T offset)
-{
-	struct mmt_mmap_data *region;
-	Addr start;
-
-	region = mmt_find_region_by_fdset_offset(&nvidia0_fds, offset);
-	if (!region)
-		return 0;
-
-	start = region->start;
-	mmt_free_region(region);
-
-	return start;
-}
-
-static Addr release_nvidia_mapping2(UWord data1, UWord data2)
-{
-	struct mmt_mmap_data *region;
-	Addr start;
-
-	region = mmt_find_region_by_fdset_data(&nvidia0_fds, data1, data2);
-	if (!region)
-		return 0;
-
-	start = region->start;
-	mmt_free_region(region);
-
-	return start;
-}
-
 static void dumpmem(const char *s, Addr addr, UInt size)
 {
 	if (!addr || !size)
@@ -310,7 +269,7 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 		return 0;
 
 	region = mmt_find_region_by_fd_offset(fd, offset * offset_unit);
-	if (!region || region->start)
+	if (!region)
 		return 0;
 
 	tmp = *region;
@@ -318,7 +277,7 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	mmt_free_region(region);
 
 	start = res._val;
-	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id, tmp.data1, tmp.data2);
+	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id);
 
 	mmt_bin_write_1('n');
 	mmt_bin_write_1('M');
@@ -329,8 +288,8 @@ int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(len);
-	mmt_bin_write_8(region->data1);
-	mmt_bin_write_8(region->data2);
+	mmt_bin_write_8(0);
+	mmt_bin_write_8(0);
 	mmt_bin_end();
 
 	return 1;
@@ -760,7 +719,6 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
-	struct mmt_mmap_data *region;
 
 	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
 		return;
@@ -822,47 +780,6 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		{
 			struct nvrm_ioctl_create_dev_obj *s = (void *)data;
 			dumpmem("out", s->ptr, 0x3C);
-			break;
-		}
-		case NVRM_IOCTL_HOST_MAP:
-		{
-			struct nvrm_ioctl_host_map *s = (void *)data;
-
-			region = get_nvidia_mapping(s->foffset);
-			if (region)
-			{
-				region->data1 = s->subdev;
-				region->data2 = s->handle;
-			}
-
-			break;
-		}
-		case NVRM_IOCTL_HOST_UNMAP:
-		{
-			struct nvrm_ioctl_host_unmap *s = (void *)data;
-
-			release_nvidia_mapping(s->foffset);
-
-			break;
-		}
-		case NVRM_IOCTL_CREATE_VSPACE:
-		{
-			struct nvrm_ioctl_create_vspace *s = (void *)data;
-			if (s->foffset == 0)
-				break;
-
-			region = get_nvidia_mapping(s->foffset);
-			if (region)
-			{
-				region->data1 = s->parent;
-				region->data2 = s->handle;
-			}
-			break;
-		}
-		case NVRM_IOCTL_DESTROY:
-		{
-			struct nvrm_ioctl_destroy *s = (void *)data;
-			release_nvidia_mapping2(s->parent, s->handle);
 			break;
 		}
 		case NVRM_IOCTL_CALL:
