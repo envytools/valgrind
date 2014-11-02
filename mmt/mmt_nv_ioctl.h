@@ -23,8 +23,6 @@ void mmt_nv_ioctl_post_clo_init(void);
 void mmt_nv_ioctl_post_open(UWord *args, SysRes res);
 void mmt_nv_ioctl_post_close(UWord *args);
 
-int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit);
-
 void mmt_nv_ioctl_pre(UWord *args);
 void mmt_nv_ioctl_post(UWord *args, SysRes res);
 
