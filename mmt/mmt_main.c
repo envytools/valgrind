@@ -55,14 +55,14 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 	{
 		int i;
 		for (i = 0; i < MMT_MAX_TRACE_FILES; ++i)
-			if (mmt_trace_files[i].path == NULL)
+			if (mmt_trace_files[i] == NULL)
 				break;
 		if (i == MMT_MAX_TRACE_FILES)
 		{
 			VG_(printf)("too many files to trace\n");
 			return False;
 		}
-		mmt_trace_files[i].path = VG_(strdup)("mmt.options-parsing", arg + VG_(strlen(TF_OPT)));
+		mmt_trace_files[i] = VG_(strdup)("mmt.options-parsing", arg + VG_(strlen(TF_OPT)));
 		return True;
 	}
 	else if (VG_(strcmp)(arg, TN_OPT) == 0)
@@ -72,7 +72,7 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 	}
 	else if (VG_(strcmp)(arg, TO_OPT) == 0)
 	{
-		mmt_trace_opens = True;
+		mmt_trace_all_opens = True;
 		return True;
 	}
 	else if (VG_(strcmp)(arg, TA_OPT) == 0)
@@ -179,7 +179,6 @@ static void mmt_post_clo_init(void)
 
 static void mmt_pre_clo_init(void)
 {
-	int i;
 	VG_(details_name) ("mmaptrace");
 	VG_(details_version) (NULL);
 	VG_(details_description) ("an MMAP tracer");
@@ -195,11 +194,7 @@ static void mmt_pre_clo_init(void)
 
 	VG_(needs_syscall_wrapper) (mmt_pre_syscall, mmt_post_syscall);
 
-	for (i = 0; i < MMT_MAX_TRACE_FILES; ++i)
-		FD_ZERO(&mmt_trace_files[i].fds);
-
-	mmt_nv_ioctl_pre_clo_init();
-	mmt_nouveau_ioctl_pre_clo_init();
+	FD_ZERO(&trace_fds);
 }
 
 VG_DETERMINE_INTERFACE_VERSION(mmt_pre_clo_init)
