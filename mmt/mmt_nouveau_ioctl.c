@@ -27,30 +27,7 @@
 
 #include <sys/select.h>
 
-static fd_set nouveau_fds;
 int mmt_trace_nouveau_ioctls = False;
-
-void mmt_nouveau_ioctl_post_open(UWord *args, SysRes res)
-{
-	const char *path = (const char *)args[0];
-
-	if (mmt_trace_nouveau_ioctls)
-	{
-		if (VG_(strncmp)(path, "/dev/dri/card", 13) == 0)
-		{
-			FD_SET(res._val, &nouveau_fds);
-			mmt_dump_open(args, res);
-		}
-	}
-}
-
-void mmt_nouveau_ioctl_post_close(UWord *args)
-{
-	int fd = (int)args[0];
-
-	if (mmt_trace_nouveau_ioctls)
-		FD_CLR(fd, &nouveau_fds);
-}
 
 static void mmt_nouveau_pushbuf(struct vki_drm_nouveau_gem_pushbuf *pushbuf)
 {
@@ -68,66 +45,55 @@ static void mmt_nouveau_pushbuf(struct vki_drm_nouveau_gem_pushbuf *pushbuf)
 	mmt_bin_end();
 }
 
-void mmt_nouveau_ioctl_pre(UWord *args)
+int mmt_nouveau_ioctl_pre(UWord *args)
 {
 	int fd = args[0];
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
 
-	if (!FD_ISSET(fd, &nouveau_fds))
-		return;
+	if (!mmt_trace_nouveau_ioctls)
+		return 0;
 
-	if ((id & 0x0000FF00) == 0x6400)
-	{
-		size = (id & 0x3FFF0000) >> 16;
+	if ((id & 0x0000FF00) != 0x6400)
+		return 0;
 
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('i');
-		mmt_bin_write_4(fd);
-		mmt_bin_write_4(id);
-		mmt_bin_write_buffer((UChar *)data, size);
-		mmt_bin_end();
+	size = (id & 0x3FFF0000) >> 16;
 
-		if ((id & 0xff) == 0x40 + 0x41) // DRM_NOUVEAU_GEM_PUSHBUF
-			mmt_nouveau_pushbuf((void *)data);
-	}
-	else
-	{
-		mmt_bin_flush();
-		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
-	}
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('i');
+	mmt_bin_write_4(fd);
+	mmt_bin_write_4(id);
+	mmt_bin_write_buffer((UChar *)data, size);
+	mmt_bin_end();
+
+	if ((id & 0xff) == 0x40 + 0x41) // DRM_NOUVEAU_GEM_PUSHBUF
+		mmt_nouveau_pushbuf((void *)data);
+
+	return 1;
 }
 
-void mmt_nouveau_ioctl_post(UWord *args, SysRes res)
+int mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 {
 	int fd = args[0];
 	UInt id = args[1];
 	void *data = (void *) args[2];
 	UInt size;
 
-	if (!FD_ISSET(fd, &nouveau_fds))
-		return;
+	if (!mmt_trace_nouveau_ioctls)
+		return 0;
 
-	if ((id & 0x0000FF00) == 0x6400)
-	{
-		size = (id & 0x3FFF0000) >> 16;
+	if ((id & 0x0000FF00) != 0x6400)
+		return 0;
 
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('j');
-		mmt_bin_write_4(fd);
-		mmt_bin_write_4(id);
-		mmt_bin_write_buffer((UChar *)data, size);
-		mmt_bin_end();
-	}
-	else
-	{
-		mmt_bin_flush();
-		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
-	}
-}
+	size = (id & 0x3FFF0000) >> 16;
 
-void mmt_nouveau_ioctl_pre_clo_init(void)
-{
-	FD_ZERO(&nouveau_fds);
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('j');
+	mmt_bin_write_4(fd);
+	mmt_bin_write_4(id);
+	mmt_bin_write_buffer((UChar *)data, size);
+	mmt_bin_end();
+
+	return 1;
 }
