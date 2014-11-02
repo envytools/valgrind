@@ -162,7 +162,7 @@ int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_obje
  *     k = mark (mmiotrace)
  *     l = reserved (call method)
  *     m = reserved (old mmap)
- *     M = mmap
+ *     M = reserved (mmap)
  *     o = memory dump
  *     p = reserved (create mapped object)
  *     P = nouveau's GEM_PUSHBUF data
@@ -250,49 +250,6 @@ void mmt_nv_ioctl_post_close(UWord *args)
 		FD_CLR(fd, &nvidiactl_fds);
 		FD_CLR(fd, &nvidia0_fds);
 	}
-}
-
-int mmt_nv_ioctl_post_mmap(UWord *args, SysRes res, int offset_unit)
-{
-	Addr start = args[0];
-	unsigned long len = args[1];
-	unsigned long prot = args[2];
-	unsigned long flags = args[3];
-	unsigned long fd = args[4];
-	unsigned long offset = args[5];
-	struct mmt_mmap_data *region;
-	struct mmt_mmap_data tmp;
-
-	if (!mmt_trace_nvidia_ioctls)
-		return 0;
-	if (!FD_ISSET(fd, &nvidia0_fds))
-		return 0;
-
-	region = mmt_find_region_by_fd_offset(fd, offset * offset_unit);
-	if (!region)
-		return 0;
-
-	tmp = *region;
-
-	mmt_free_region(region);
-
-	start = res._val;
-	region = mmt_add_region(fd, start, start + len, tmp.offset, tmp.id);
-
-	mmt_bin_write_1('n');
-	mmt_bin_write_1('M');
-	mmt_bin_write_8(region->offset);
-	mmt_bin_write_4(prot);
-	mmt_bin_write_4(flags);
-	mmt_bin_write_4(fd);
-	mmt_bin_write_4(region->id);
-	mmt_bin_write_8(region->start);
-	mmt_bin_write_8(len);
-	mmt_bin_write_8(0);
-	mmt_bin_write_8(0);
-	mmt_bin_end();
-
-	return 1;
 }
 
 static const struct nv_object_type *find_objtype(UInt id)
