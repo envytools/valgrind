@@ -35,6 +35,7 @@
  * Binary format message types: (some of them are not used anymore, so they are reserved)
  *     = = text
  *     - = text
+ *     d = dup syscall
  *     e = mremap syscall
  *     m = reserved (old mmap syscall)
  *     M = mmap syscall
@@ -842,4 +843,17 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 		post_munmap(tid, args, nArgs, res);
 	else if (syscallno == __NR_mremap)
 		post_mremap(tid, args, nArgs, res);
+	else if (syscallno == __NR_dup)
+	{
+		int fd = args[0];
+		if (!sr_isError(res) && FD_ISSET(fd, &trace_fds))
+		{
+			mmt_bin_write_1('d');
+			mmt_bin_write_4(fd);
+			mmt_bin_write_4((int)sr_Res(res));
+			mmt_bin_end();
+
+			FD_SET(sr_Res(res), &trace_fds);
+		}
+	}
 }
