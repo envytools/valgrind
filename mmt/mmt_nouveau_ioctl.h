@@ -5,11 +5,7 @@
 
 extern int mmt_trace_nouveau_ioctls;
 
-void mmt_nouveau_ioctl_post_open(UWord *args, SysRes res);
-void mmt_nouveau_ioctl_post_close(UWord *args);
-void mmt_nouveau_ioctl_pre(UWord *args);
-void mmt_nouveau_ioctl_post(UWord *args, SysRes res);
-void mmt_nouveau_ioctl_pre_clo_init(void);
-
+int mmt_nouveau_ioctl_pre(UWord *args);
+int mmt_nouveau_ioctl_post(UWord *args, SysRes res);
 
 #endif

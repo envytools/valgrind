@@ -50,8 +50,9 @@ static int mmt_last_region = -1;
 
 static UInt mmt_current_item = 1;
 
-int mmt_trace_opens = False;
-struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
+int mmt_trace_all_opens = False;
+char *mmt_trace_files[MMT_MAX_TRACE_FILES];
+fd_set trace_fds;
 
 int mmt_trace_all_files = False;
 
@@ -658,8 +659,14 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 {
 	if (syscallno == __NR_ioctl)
 	{
-		mmt_nv_ioctl_pre(args);
-		mmt_nouveau_ioctl_pre(args);
+		int fd = args[0];
+		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls || mmt_trace_nouveau_ioctls))
+			if (mmt_nv_ioctl_pre(args) == 0 && mmt_nouveau_ioctl_pre(args) == 0)
+			{
+				UInt id = args[1];
+				mmt_bin_flush();
+				VG_(message)(Vg_UserMsg, "unhandled ioctl pre,  fd: %d, id:0x%x\n", fd, id);
+			}
 	}
 	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
 		mmt_bin_flush();
@@ -686,47 +693,34 @@ static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	const char *path = (const char *)args[0];
 	int i;
 
-	if (mmt_trace_opens)
-		mmt_dump_open(args, res);
-
 	if (res._isError)
 		return;
 
-	if (!mmt_trace_all_files)
+	if (mmt_trace_all_files)
+		FD_SET(res._val, &trace_fds);
+	else
 	{
 		for (i = 0; i < MMT_MAX_TRACE_FILES; ++i)
 		{
-			const char *path2 = mmt_trace_files[i].path;
+			const char *path2 = mmt_trace_files[i];
 			if (path2 != NULL && VG_(strcmp)(path, path2) == 0)
 			{
-				FD_SET(res._val, &mmt_trace_files[i].fds);
-//				VG_(message)(Vg_DebugMsg, "fd %ld connected to %s\n", res._val, path);
+				FD_SET(res._val, &trace_fds);
 				break;
 			}
 		}
 	}
 
-	mmt_nv_ioctl_post_open(args, res);
-	mmt_nouveau_ioctl_post_open(args, res);
+	if (mmt_trace_all_opens || FD_ISSET(res._val, &trace_fds))
+		mmt_dump_open(args, res);
 }
 
 static void post_close(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 {
 	int fd = (int)args[0];
-	int i;
 
-	if (!mmt_trace_all_files)
-		for(i = 0; i < MMT_MAX_TRACE_FILES; ++i)
-		{
-			if (mmt_trace_files[i].path != NULL && FD_ISSET(fd, &mmt_trace_files[i].fds))
-			{
-				FD_CLR(fd, &mmt_trace_files[i].fds);
-				break;
-			}
-		}
-
-	mmt_nv_ioctl_post_close(args);
-	mmt_nouveau_ioctl_post_close(args);
+	if (FD_ISSET(fd, &trace_fds))
+		FD_CLR(fd, &trace_fds);
 }
 
 static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int offset_unit)
@@ -737,7 +731,6 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	unsigned long flags = args[3];
 	unsigned long fd = args[4];
 	unsigned long offset = args[5];
-	int i;
 	struct mmt_mmap_data *region;
 
 	if (res._isError || (int)fd == -1)
@@ -745,19 +738,8 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 
 	start = res._val;
 
-	if (!mmt_trace_all_files)
-	{
-		for(i = 0; i < MMT_MAX_TRACE_FILES; ++i)
-		{
-			if (FD_ISSET(fd, &mmt_trace_files[i].fds))
-				break;
-		}
-		if (i == MMT_MAX_TRACE_FILES)
-		{
-//			VG_(message)(Vg_DebugMsg, "fd %ld not found\n", fd);
-			return;
-		}
-	}
+	if (!FD_ISSET(fd, &trace_fds))
+		return;
 
 	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0);
 
@@ -835,8 +817,15 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 {
 	if (syscallno == __NR_ioctl)
 	{
-		mmt_nv_ioctl_post(args, res);
-		mmt_nouveau_ioctl_post(args, res);
+		int fd = args[0];
+		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls || mmt_trace_nouveau_ioctls))
+			if (mmt_nv_ioctl_post(args, res) == 0 && mmt_nouveau_ioctl_post(args, res) == 0)
+			{
+				UInt id = args[1];
+				mmt_bin_flush();
+				VG_(message)(Vg_UserMsg, "unhandled ioctl post, fd: %d, id:0x%x\n", fd, id);
+			}
+
 		mmt_bin_flush();
 	}
 	else if (syscallno == __NR_open)
