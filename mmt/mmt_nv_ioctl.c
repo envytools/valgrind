@@ -35,9 +35,6 @@
 
 #define NVRM_CLASS_SUBDEVICE_0 0x2080
 
-static fd_set nvidiactl_fds;
-static fd_set nvidia0_fds;
-
 int mmt_trace_nvidia_ioctls = False;
 int mmt_trace_marks = False;
 static int trace_mark_fd;
@@ -217,39 +214,6 @@ static void dumpmem(const char *s, Addr addr, UInt size)
 	mmt_bin_write_str(s);
 	mmt_bin_write_buffer((UChar *)addr, size);
 	mmt_bin_end();
-}
-
-void mmt_nv_ioctl_post_open(UWord *args, SysRes res)
-{
-	const char *path = (const char *)args[0];
-
-	if (mmt_trace_nvidia_ioctls)
-	{
-		int found = 0;
-		if (VG_(strcmp)(path, "/dev/nvidiactl") == 0)
-		{
-			FD_SET(res._val, &nvidiactl_fds);
-			found = 1;
-		}
-		else if (VG_(strncmp)(path, "/dev/nvidia", 11) == 0)
-		{
-			FD_SET(res._val, &nvidia0_fds);
-			found = 1;
-		}
-		if (found)
-			mmt_dump_open(args, res);
-	}
-}
-
-void mmt_nv_ioctl_post_close(UWord *args)
-{
-	int fd = (int)args[0];
-
-	if (mmt_trace_nvidia_ioctls)
-	{
-		FD_CLR(fd, &nvidiactl_fds);
-		FD_CLR(fd, &nvidia0_fds);
-	}
 }
 
 static const struct nv_object_type *find_objtype(UInt id)
@@ -537,17 +501,19 @@ static void mess_with_ioctl_create(int fd, UInt *data)
 	}
 }
 
-void mmt_nv_ioctl_pre(UWord *args)
+int mmt_nv_ioctl_pre(UWord *args)
 {
 	int fd = args[0];
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
 
-	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
-		return;
+	if (!mmt_trace_nvidia_ioctls)
+		return 0;
 	if (!data)
-		return;
+		return 0;
+	if ((id & 0x0000FF00) != 0x4600)
+		return 0;
 
 	if (mmt_trace_marks)
 	{
@@ -564,22 +530,13 @@ void mmt_nv_ioctl_pre(UWord *args)
 	if (id == NVRM_IOCTL_CREATE && mmt_ioctl_create_fuzzer)
 		mess_with_ioctl_create(fd, data);
 
-	if ((id & 0x0000FF00) == 0x4600)
-	{
-		size = (id & 0x3FFF0000) >> 16;
-
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('i');
-		mmt_bin_write_4(fd);
-		mmt_bin_write_4(id);
-		mmt_bin_write_buffer((UChar *)data, size);
-		mmt_bin_end();
-	}
-	else
-	{
-		mmt_bin_flush();
-		VG_(message)(Vg_UserMsg, "pre_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
-	}
+	size = (id & 0x3FFF0000) >> 16;
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('i');
+	mmt_bin_write_4(fd);
+	mmt_bin_write_4(id);
+	mmt_bin_write_buffer((UChar *)data, size);
+	mmt_bin_end();
 
 	switch (id)
 	{
@@ -668,19 +625,23 @@ void mmt_nv_ioctl_pre(UWord *args)
 			break;
 		}
 	}
+
+	return 1;
 }
 
-void mmt_nv_ioctl_post(UWord *args, SysRes res)
+int mmt_nv_ioctl_post(UWord *args, SysRes res)
 {
 	int fd = args[0];
 	UInt id = args[1];
 	UInt *data = (UInt *) args[2];
 	UInt size;
 
-	if (!FD_ISSET(fd, &nvidiactl_fds) && !FD_ISSET(fd, &nvidia0_fds))
-		return;
+	if (!mmt_trace_nvidia_ioctls)
+		return 0;
 	if (!data)
-		return;
+		return 0;
+	if ((id & 0x0000FF00) != 0x4600)
+		return 0;
 
 	if (mmt_trace_marks)
 	{
@@ -708,22 +669,14 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 		}
 	}
 
-	if ((id & 0x0000FF00) == 0x4600)
-	{
-		size = (id & 0x3FFF0000) >> 16;
+	size = (id & 0x3FFF0000) >> 16;
 
-		mmt_bin_write_1('n');
-		mmt_bin_write_1('j');
-		mmt_bin_write_4(fd);
-		mmt_bin_write_4(id);
-		mmt_bin_write_buffer((UChar *)data, size);
-		mmt_bin_end();
-	}
-	else
-	{
-		mmt_bin_flush();
-		VG_(message)(Vg_UserMsg, "post_ioctl, fd: %d, wrong id:0x%x\n", fd, id);
-	}
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('j');
+	mmt_bin_write_4(fd);
+	mmt_bin_write_4(id);
+	mmt_bin_write_buffer((UChar *)data, size);
+	mmt_bin_end();
 
 	if (sr_Res(res) || sr_isError(res))
 	{
@@ -796,10 +749,6 @@ void mmt_nv_ioctl_post(UWord *args, SysRes res)
 			break;
 		}
 	}
-}
 
-void mmt_nv_ioctl_pre_clo_init(void)
-{
-	FD_ZERO(&nvidiactl_fds);
-	FD_ZERO(&nvidia0_fds);
+	return 1;
 }

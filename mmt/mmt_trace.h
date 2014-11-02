@@ -23,15 +23,12 @@ struct mmt_mmap_data {
 	UInt id;
 };
 
-struct mmt_trace_file {
-	const char *path;
-	fd_set fds;
-};
+extern fd_set trace_fds;
 
 #define maybe_unused __attribute__((unused))
 
-extern int mmt_trace_opens;
-extern struct mmt_trace_file mmt_trace_files[MMT_MAX_TRACE_FILES];
+extern int mmt_trace_all_opens;
+extern char *mmt_trace_files[MMT_MAX_TRACE_FILES];
 extern int mmt_trace_all_files;
 extern int mmt_trace_stdout_stderr;
 
