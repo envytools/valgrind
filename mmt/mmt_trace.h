@@ -21,8 +21,6 @@ struct mmt_mmap_data {
 	int fd;
 	Off64T offset;
 	UInt id;
-	UWord data1;
-	UWord data2;
 };
 
 struct mmt_trace_file {
@@ -39,11 +37,10 @@ extern int mmt_trace_stdout_stderr;
 
 void mmt_free_region(struct mmt_mmap_data *m);
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
-		Off64T offset, UInt id, UWord data1, UWord data2);
+		Off64T offset, UInt id);
 
 struct mmt_mmap_data *mmt_find_region_by_fd_offset(int fd, Off64T offset);
 struct mmt_mmap_data *mmt_find_region_by_fdset_offset(fd_set *fds, Off64T offset);
-struct mmt_mmap_data *mmt_find_region_by_fdset_data(fd_set *fds, UWord data1, UWord data2);
 
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs);
 
