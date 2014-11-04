@@ -71,6 +71,9 @@ static int neg_regions_number;
 static maybe_unused void dump_state(void)
 {
 	int i;
+
+	mmt_bin_flush();
+
 	if (neg_regions_number == 0)
 		VG_(printf)("NEGative cache empty\n");
 	else
