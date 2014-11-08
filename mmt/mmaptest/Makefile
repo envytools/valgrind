@@ -12,20 +12,20 @@ unaligned64: unaligned.c
 	@gcc -m64 unaligned.c -Wall -o unaligned64
 
 clean:
-	@rm -f mmaptest32 mmaptest64 mmaptest32.out1.tmp mmaptest32.out2.tmp mmaptest64.out1.tmp mmaptest64.out2.tmp unaligned64 unaligned64.out1.tmp unaligned64.out2.tmp
+	@rm -f mmaptest32 mmaptest64 mmaptest32.stdout.tmp mmaptest32.mmt.tmp mmaptest64.stdout.tmp mmaptest64.mmt.tmp unaligned64 unaligned64.stdout.tmp unaligned64.mmt.tmp
 
 test: test32 test64 test_unaligned64
 
 test32: mmaptest32
-	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero ./mmaptest32 >mmaptest32.out1.tmp 2>mmaptest32.out2.tmp || (cat mmaptest32.out1.tmp && cat mmaptest32.out2.tmp && false)
-	@cat mmaptest32.out1.tmp | diff -u mmaptest32.out1 -
-	@cat mmaptest32.out2.tmp | mmt_bin2dedma | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest32.out2 -
+	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero --log-file=mmaptest32.mmt.tmp ./mmaptest32 >mmaptest32.stdout.tmp || (cat mmaptest32.stdout.tmp && cat mmaptest32.mmt.tmp && false)
+	@diff -u mmaptest32.stdout mmaptest32.stdout.tmp
+	@cat mmaptest32.mmt.tmp | mmt_bin2dedma | grep -v sys_open | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest32.mmt.dedma -
 
 test64: mmaptest64
-	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero ./mmaptest64 >mmaptest64.out1.tmp 2>mmaptest64.out2.tmp || (cat mmaptest64.out1.tmp && cat mmaptest64.out2.tmp && false)
-	@cat mmaptest64.out1.tmp | diff -u mmaptest64.out1 -
-	@cat mmaptest64.out2.tmp | mmt_bin2dedma | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest64.out2 -
+	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero --log-file=mmaptest64.mmt.tmp ./mmaptest64 >mmaptest64.stdout.tmp || (cat mmaptest64.stdout.tmp && cat mmaptest64.mmt.tmp && false)
+	@diff -u mmaptest64.stdout mmaptest64.stdout.tmp
+	@cat mmaptest64.mmt.tmp | mmt_bin2dedma | grep -v sys_open | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u mmaptest64.mmt.dedma -
 
 test_unaligned64: unaligned64
-	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero ./unaligned64 >unaligned64.out1.tmp 2>unaligned64.out2.tmp || (cat unaligned64.out1.tmp && cat unaligned64.out2.tmp && false)
-	@cat unaligned64.out2.tmp | mmt_bin2dedma | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u unaligned64.out2 -
+	@../../coregrind/valgrind --tool=mmt --mmt-trace-file=/dev/zero --log-file=unaligned64.mmt.tmp ./unaligned64 >unaligned64.stdout.tmp || (cat unaligned64.stdout.tmp && cat unaligned64.mmt.tmp && false)
+	@cat unaligned64.mmt.tmp | mmt_bin2dedma | grep -v sys_open | grep "^--" | sed "s/^--[0-9]*-- //" | diff -u unaligned64.mmt.dedma -
