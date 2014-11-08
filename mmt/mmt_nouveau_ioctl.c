@@ -70,6 +70,8 @@ int mmt_nouveau_ioctl_pre(UWord *args)
 	if ((id & 0xff) == 0x40 + 0x41) // DRM_NOUVEAU_GEM_PUSHBUF
 		mmt_nouveau_pushbuf((void *)data);
 
+	mmt_bin_sync();
+
 	return 1;
 }
 
@@ -94,6 +96,7 @@ int mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 	mmt_bin_write_4(id);
 	mmt_bin_write_buffer((UChar *)data, size);
 	mmt_bin_end();
+	mmt_bin_sync();
 
 	return 1;
 }
