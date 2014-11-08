@@ -7,4 +7,7 @@
 /unaligned64
 /unaligned64.stdout.tmp
 /unaligned64.mmt.tmp
+/coverage64
+/coverage64.stdout.tmp
+/coverage64.mmt.tmp
 
