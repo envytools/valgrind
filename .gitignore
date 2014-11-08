@@ -1251,6 +1251,7 @@
 /mmt/mmaptest/mmaptest32
 /mmt/mmaptest/mmaptest64
 /mmt/mmaptest/unaligned64
+/mmt/mmaptest/coverage64
 
 # /mmt/tests/
 /mmt/tests/*.stderr.diff
