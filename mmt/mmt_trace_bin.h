@@ -102,8 +102,14 @@ void mmt_bin_write_str(const char *str);
 void mmt_bin_write_buffer(UChar *buffer, int len);
 
 void mmt_bin_flush(void);
+void mmt_bin_flush_and_sync(void);
 
 #define mmt_bin_end() \
 		mmt_bin_write_1(10)
+
+#define mmt_bin_sync() do {   \
+		if (mmt_sync_fd != -1) \
+			mmt_emit_sync_and_wait(); \
+	} while (0)
 
 #endif
