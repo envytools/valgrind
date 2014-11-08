@@ -1,0 +1,10 @@
+/mmaptest32
+/mmaptest32.stdout.tmp
+/mmaptest32.mmt.tmp
+/mmaptest64
+/mmaptest64.stdout.tmp
+/mmaptest64.mmt.tmp
+/unaligned64
+/unaligned64.stdout.tmp
+/unaligned64.mmt.tmp
+

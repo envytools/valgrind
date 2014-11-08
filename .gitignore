@@ -1,14 +1,5 @@
 /mmt/Makefile
 /mmt/Makefile.in
-/mmt/mmaptest/mmaptest32
-/mmt/mmaptest/mmaptest32.out1.tmp
-/mmt/mmaptest/mmaptest32.out2.tmp
-/mmt/mmaptest/mmaptest64
-/mmt/mmaptest/mmaptest64.out1.tmp
-/mmt/mmaptest/mmaptest64.out2.tmp
-/mmt/mmaptest/unaligned64
-/mmt/mmaptest/unaligned64.out1.tmp
-/mmt/mmaptest/unaligned64.out2.tmp
 /mmt/mmt-amd64-linux
 /mmt/mmt-x86-linux
 /mmt/tests/Makefile
