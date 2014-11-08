@@ -73,4 +73,7 @@ static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 	return __find_mmap_slow(addr);
 }
 
+extern int mmt_sync_fd;
+void mmt_emit_sync_and_wait(void);
+
 #endif /* MMT_TRACE_H_ */

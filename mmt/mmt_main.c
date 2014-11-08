@@ -28,9 +28,13 @@
 */
 
 #include "pub_tool_basics.h"
+#include "pub_tool_libcassert.h"
 #include "pub_tool_libcbase.h"
+#include "pub_tool_libcfile.h"
 #include "pub_tool_libcprint.h"
 #include "pub_tool_mallocfree.h"
+
+#include <fcntl.h>
 
 #include "mmt_nv_ioctl.h"
 #include "mmt_nouveau_ioctl.h"
@@ -47,7 +51,9 @@
 #define FZ_OPT "--mmt-ioctl-create-fuzzer="
 #define OT_OPT "--mmt-object-ctr="
 #define FC_OPT "--mmt-ioctl-call-fuzzer="
+#define SF_OPT "--mmt-sync-file="
 
+static char *mmt_sync_file = NULL;
 static Bool mmt_process_cmd_line_option(const HChar *arg)
 {
 //	VG_(printf)("arg: %s\n", arg);
@@ -143,6 +149,12 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 		}
 		return False;
 	}
+	else if (VG_(strncmp)(arg, SF_OPT, VG_(strlen(SF_OPT))) == 0)
+	{
+		const HChar *val = arg + VG_(strlen(SF_OPT));
+		mmt_sync_file = VG_(strdup)("mmt.options-parsing", val);
+		return True;
+	}
 
 	return False;
 }
@@ -152,15 +164,16 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TF_OPT "path       trace loads and stores to memory mapped for\n"
 		 "                                this file (e.g. /dev/nvidia0) (you can pass \n"
 		 "                                this option multiple times)\n");
-	VG_(printf)("    " TA_OPT     "       trace loads and stores to memory mapped for all files\n");
-	VG_(printf)("    " TN_OPT         "   trace nvidia ioctls on /dev/nvidiactl and /dev/nvidia0\n");
+	VG_(printf)("    " TA_OPT     "       trace loads and stores to memory mapped for\n\t\t\t\tall files\n");
+	VG_(printf)("    " TN_OPT         "   trace nvidia ioctls on /dev/nvidiactl and\n\t\t\t\t/dev/nvidia0\n");
 	VG_(printf)("    " TV_OPT          "  trace nouveau ioctls on /dev/dri/cardX\n");
 	VG_(printf)("    " TO_OPT     "       trace all 'open' syscalls\n");
 	VG_(printf)("    " TM_OPT "           send mmiotrace marks before and after ioctls\n");
 	VG_(printf)("    " TS_OPT         "   trace writes to stdout and stderr\n");
-	VG_(printf)("    " FZ_OPT          "  0-disabled (default), 1-enabled (safe), 2-enabled (unsafe)\n");
-	VG_(printf)("    " OT_OPT          "class,cargs sets the number of u32 constructor args(dec) for specified class(hex)\n");
+	VG_(printf)("    " FZ_OPT          "  0-disabled (default), 1-enabled (safe),\n\t\t\t\t2-enabled (unsafe)\n");
+	VG_(printf)("    " OT_OPT          "class,cargs sets the number of u32 constructor args(dec)\n\t\t\t\tfor specified class(hex)\n");
 	VG_(printf)("    " FC_OPT        "    0-disabled (default), 1-enabled\n");
+	VG_(printf)("    " SF_OPT"path        emit synchronization markers in output stream\n\t\t\t\tand wait for replies from specified file\n");
 }
 
 static void mmt_print_debug_usage(void)
@@ -175,6 +188,13 @@ static void mmt_fini(Int exitcode)
 static void mmt_post_clo_init(void)
 {
 	mmt_nv_ioctl_post_clo_init();
+
+	if (mmt_sync_file)
+	{
+		SysRes r = VG_(open)(mmt_sync_file, O_RDONLY, 0);
+		tl_assert2(!sr_isError(r), "cannot open file %s: %d\n", mmt_sync_file, sr_Err(r));
+		mmt_sync_fd = sr_Res(r);
+	}
 }
 
 static void mmt_pre_clo_init(void)

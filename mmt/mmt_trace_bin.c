@@ -22,6 +22,8 @@
 */
 
 #include "pub_tool_debuginfo.h"
+#include "pub_tool_vkiscnums.h"
+#include "coregrind/pub_core_syscall.h"
 
 #include "mmt_trace_bin.h"
 
@@ -113,8 +115,8 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 
 #define print_str(str) mmt_bin_write_str(str)
 
-#define print_store_end() mmt_bin_end()
-#define print_load_end() mmt_bin_end()
+#define print_store_end() do { mmt_bin_end(); mmt_bin_sync(); } while (0)
+#define print_load_end() do { mmt_bin_end(); mmt_bin_sync(); } while (0)
 
 VG_REGPARM(2)
 void mmt_trace_store_bin_1(Addr addr, UWord value)
@@ -652,6 +654,12 @@ void mmt_bin_flush(void)
 {
 	VG_(write)(VG_(log_output_sink).fd, buffer, written);
 	written = 0;
+}
+
+void mmt_bin_flush_and_sync(void)
+{
+	mmt_bin_flush();
+	VG_(do_syscall1)(__NR_fdatasync, VG_(log_output_sink).fd);
 }
 
 void mmt_bin_write_1(UChar u8)
