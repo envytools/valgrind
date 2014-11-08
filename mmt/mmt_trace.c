@@ -136,34 +136,6 @@ static maybe_unused void __verify_state(void)
 		if (i > 0)
 			mmt_assert2(neg1->score <= neg1[-1].score, "score: %d, prev score: %d", neg1->score, neg1[-1].score);
 
-		if (neg1->end > 0 && neg1->end != (Addr)-1)
-		{
-			int found = 0;
-			pos1 = mmt_mmaps;
-			for (j = 0; j <= mmt_last_region; ++j, ++pos1)
-				if (neg1->end == pos1->start)
-				{
-					found = 1;
-					break;
-				}
-			mmt_assert2(found, "end of negative region %d (<%p, %p>) does not touch start of positive region",
-					i, (void *)neg1->start, (void *)neg1->end);
-		}
-
-		if (neg1->start > 0)
-		{
-			int found = 0;
-			pos1 = mmt_mmaps;
-			for (j = 0; j <= mmt_last_region; ++j, ++pos1)
-				if (neg1->start == pos1->end)
-				{
-					found = 1;
-					break;
-				}
-			mmt_assert2(found, "start of negative region %d (<%p, %p>) does not touch end of positive region",
-					i, (void *)neg1->start, (void *)neg1->end);
-		}
-
 		neg2 = neg_regions;
 		for (j = 0; j < neg_regions_number; ++j, ++neg2)
 		{
