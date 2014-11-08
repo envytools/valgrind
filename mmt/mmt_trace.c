@@ -42,6 +42,7 @@
  *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
  *     o = open syscall
  *     r = memory read
+ *     s = sync marker
  *     t = write syscall
  *     u = munmap syscall
  *     w = memory write
@@ -629,6 +630,7 @@ static void mmt_pre_write(UWord *args)
 	mmt_bin_write_4(fd);
 	mmt_bin_write_buffer(buf, count);
 	mmt_bin_end();
+	mmt_bin_sync();
 }
 
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
@@ -662,6 +664,7 @@ void mmt_dump_open(UWord *args, SysRes res)
 	mmt_bin_write_4(res._val);
 	mmt_bin_write_str(path);
 	mmt_bin_end();
+	mmt_bin_sync();
 }
 
 static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -728,6 +731,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(len);
 	mmt_bin_end();
+	mmt_bin_sync();
 }
 
 static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -752,6 +756,7 @@ static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	mmt_bin_write_8(0);
 	mmt_bin_write_8(0);
 	mmt_bin_end();
+	mmt_bin_sync();
 
 	mmt_free_region(region);
 }
@@ -786,6 +791,7 @@ static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	mmt_bin_write_8(region->start);
 	mmt_bin_write_8(region->end - region->start);
 	mmt_bin_end();
+	mmt_bin_sync();
 }
 
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
@@ -827,8 +833,31 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 			mmt_bin_write_4(fd);
 			mmt_bin_write_4((int)sr_Res(res));
 			mmt_bin_end();
+			mmt_bin_sync();
 
 			FD_SET(sr_Res(res), &trace_fds);
 		}
 	}
+}
+
+int mmt_sync_fd = -1;
+static int sync_id = 0;
+
+void mmt_emit_sync_and_wait(void)
+{
+	char buf[4];
+	mmt_bin_write_1('s');
+	mmt_bin_write_4(++sync_id);
+	mmt_bin_end();
+	mmt_bin_flush_and_sync();
+	int cnt = 4;
+	while (cnt)
+	{
+		int r = VG_(read)(mmt_sync_fd, buf + 4 - cnt, cnt);
+		mmt_assert2(r > 0, "sync failed: %d", r);
+
+		cnt -= r;
+	}
+	int ret_sync = *(int *)((void *)buf);
+	mmt_assert2(ret_sync == sync_id, "%d %d", ret_sync, sync_id);
 }

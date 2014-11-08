@@ -625,6 +625,7 @@ int mmt_nv_ioctl_pre(UWord *args)
 			break;
 		}
 	}
+	mmt_bin_sync();
 
 	return 1;
 }
@@ -749,6 +750,7 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 			break;
 		}
 	}
+	mmt_bin_sync();
 
 	return 1;
 }
