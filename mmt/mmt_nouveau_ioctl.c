@@ -45,6 +45,19 @@ static void mmt_nouveau_pushbuf(struct vki_drm_nouveau_gem_pushbuf *pushbuf)
 	mmt_bin_end();
 }
 
+static void dumpmem(const char *s, Addr addr, UInt size)
+{
+	if (!addr || !size)
+		return;
+
+	mmt_bin_write_1('n');
+	mmt_bin_write_1('o');
+	mmt_bin_write_8(addr);
+	mmt_bin_write_str(s);
+	mmt_bin_write_buffer((UChar *)addr, size);
+	mmt_bin_end();
+}
+
 int mmt_nouveau_ioctl_pre(UWord *args)
 {
 	int fd = args[0];
@@ -67,8 +80,15 @@ int mmt_nouveau_ioctl_pre(UWord *args)
 	mmt_bin_write_buffer((UChar *)data, size);
 	mmt_bin_end();
 
-	if ((id & 0xff) == 0x40 + 0x41) // DRM_NOUVEAU_GEM_PUSHBUF
+	if (id == VKI_DRM_IOCTL_NOUVEAU_GEM_PUSHBUF)
 		mmt_nouveau_pushbuf((void *)data);
+	else if (id == VKI_DRM_IOCTL_VERSION)
+	{
+		struct vki_drm_version *d = (void *)data;
+		dumpmem("in", (Addr)d->name, d->name_len);
+		dumpmem("in", (Addr)d->date, d->date_len);
+		dumpmem("in", (Addr)d->desc, d->desc_len);
+	}
 
 	mmt_bin_sync();
 
@@ -96,6 +116,15 @@ int mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 	mmt_bin_write_4(id);
 	mmt_bin_write_buffer((UChar *)data, size);
 	mmt_bin_end();
+
+	if (id == VKI_DRM_IOCTL_VERSION)
+	{
+		struct vki_drm_version *d = (void *)data;
+		dumpmem("out", (Addr)d->name, d->name_len);
+		dumpmem("out", (Addr)d->date, d->date_len);
+		dumpmem("out", (Addr)d->desc, d->desc_len);
+	}
+
 	mmt_bin_sync();
 
 	return 1;
