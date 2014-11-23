@@ -64,7 +64,6 @@ int mmt_nouveau_ioctl_pre(UWord *args)
 
 	size = (id & 0x3FFF0000) >> 16;
 
-	mmt_bin_write_1('n');
 	mmt_bin_write_1('i');
 	mmt_bin_write_4(fd);
 	mmt_bin_write_4(id);
@@ -101,10 +100,11 @@ int mmt_nouveau_ioctl_post(UWord *args, SysRes res)
 
 	size = (id & 0x3FFF0000) >> 16;
 
-	mmt_bin_write_1('n');
 	mmt_bin_write_1('j');
 	mmt_bin_write_4(fd);
 	mmt_bin_write_4(id);
+	mmt_bin_write_8(sr_Res(res));
+	mmt_bin_write_8(sr_Err(res));
 	mmt_bin_write_buffer((UChar *)data, size);
 	mmt_bin_end();
 
