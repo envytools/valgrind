@@ -154,8 +154,8 @@ int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_obje
  *     e = reserved (deallocate map)
  *     g = reserved (gpu map)
  *     h = reserved (gpu unmap)
- *     i = ioctl before
- *     j = ioctl after
+ *     i = reserved (ioctl before)
+ *     j = reserved (ioctl after)
  *     k = mark (mmiotrace)
  *     l = reserved (call method)
  *     m = reserved (old mmap)
@@ -531,7 +531,7 @@ int mmt_nv_ioctl_pre(UWord *args)
 		mess_with_ioctl_create(fd, data);
 
 	size = (id & 0x3FFF0000) >> 16;
-	mmt_bin_write_1('n');
+
 	mmt_bin_write_1('i');
 	mmt_bin_write_4(fd);
 	mmt_bin_write_4(id);
@@ -672,18 +672,13 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 
 	size = (id & 0x3FFF0000) >> 16;
 
-	mmt_bin_write_1('n');
 	mmt_bin_write_1('j');
 	mmt_bin_write_4(fd);
 	mmt_bin_write_4(id);
+	mmt_bin_write_8(sr_Res(res));
+	mmt_bin_write_8(sr_Err(res));
 	mmt_bin_write_buffer((UChar *)data, size);
 	mmt_bin_end();
-
-	if (sr_Res(res) || sr_isError(res))
-	{
-		mmt_bin_flush();
-		VG_(message)(Vg_UserMsg, "ioctl result: %ld (0x%lx), iserr: %d, err: %ld (0x%lx)\n", sr_Res(res), sr_Res(res), sr_isError(res), sr_Err(res), sr_Err(res));
-	}
 
 	switch (id)
 	{
