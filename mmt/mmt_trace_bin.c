@@ -697,6 +697,8 @@ void mmt_bin_write_str(const char *str)
 void mmt_bin_write_buffer(UChar *buf, int len)
 {
 	mmt_bin_write_4(len);
+	if (len == 0)
+		return;
 
 	do
 	{
