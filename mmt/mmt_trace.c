@@ -42,10 +42,12 @@
  *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
  *     o = open syscall
  *     r = memory read
+ *     s = read with info
  *     S = sync marker
  *     t = write syscall
  *     u = munmap syscall
  *     w = memory write
+ *     x = write with info
  */
 static struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
 static int mmt_last_region = -1;
