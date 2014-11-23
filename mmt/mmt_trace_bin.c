@@ -27,20 +27,6 @@
 
 #include "mmt_trace_bin.h"
 
-/**
- * Message types:
- * e = mremap
- * m = mmap
- * n = nvidia/nouveau specific
- * o = open
- * r = read
- * s = read with info
- * t = write syscall
- * u = unmap
- * w = write
- * x = write with info
- */
-
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
 	char filename[100];
