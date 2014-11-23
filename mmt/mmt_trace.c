@@ -646,8 +646,12 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 			if (mmt_nv_ioctl_pre(args) == 0 && mmt_nouveau_ioctl_pre(args) == 0)
 			{
 				UInt id = args[1];
-				mmt_bin_flush();
-				VG_(message)(Vg_UserMsg, "unhandled ioctl pre,  fd: %d, id:0x%x\n", fd, id);
+
+				mmt_bin_write_1('i');
+				mmt_bin_write_4(fd);
+				mmt_bin_write_4(id);
+				mmt_bin_write_buffer(NULL, 0);
+				mmt_bin_end();
 			}
 	}
 	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
@@ -808,8 +812,14 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 			if (mmt_nv_ioctl_post(args, res) == 0 && mmt_nouveau_ioctl_post(args, res) == 0)
 			{
 				UInt id = args[1];
-				mmt_bin_flush();
-				VG_(message)(Vg_UserMsg, "unhandled ioctl post, fd: %d, id:0x%x\n", fd, id);
+
+				mmt_bin_write_1('j');
+				mmt_bin_write_4(fd);
+				mmt_bin_write_4(id);
+				mmt_bin_write_8(sr_Res(res));
+				mmt_bin_write_8(sr_Err(res));
+				mmt_bin_write_buffer(NULL, 0);
+				mmt_bin_end();
 			}
 
 		mmt_bin_flush();
