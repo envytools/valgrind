@@ -42,7 +42,7 @@
  *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
  *     o = open syscall
  *     r = memory read
- *     s = sync marker
+ *     S = sync marker
  *     t = write syscall
  *     u = munmap syscall
  *     w = memory write
@@ -846,7 +846,7 @@ static int sync_id = 0;
 void mmt_emit_sync_and_wait(void)
 {
 	char buf[4];
-	mmt_bin_write_1('s');
+	mmt_bin_write_1('S');
 	mmt_bin_write_4(++sync_id);
 	mmt_bin_end();
 	mmt_bin_flush_and_sync();
