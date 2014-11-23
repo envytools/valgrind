@@ -37,6 +37,8 @@
  *     - = text
  *     d = dup syscall
  *     e = mremap syscall
+ *     i = ioctl before
+ *     j = ioctl after
  *     m = reserved (old mmap syscall)
  *     M = mmap syscall
  *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
