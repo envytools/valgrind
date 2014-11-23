@@ -160,7 +160,7 @@ int mmt_nv_object_types_count = sizeof(mmt_nv_object_types) / sizeof(mmt_nv_obje
  *     l = reserved (call method)
  *     m = reserved (old mmap)
  *     M = reserved (mmap)
- *     o = memory dump
+ *     o = reserved (memory dump)
  *     p = reserved (create mapped object)
  *     P = reserved (nouveau's GEM_PUSHBUF data)
  *     r = reserved (create driver object)
@@ -193,26 +193,19 @@ void mmt_nv_ioctl_post_clo_init(void)
 	}
 }
 
-static void dumpmem(const char *s, Addr addr, UInt size)
+static void dumpmem(Addr addr, UInt size)
 {
 	if (!addr || !size)
 		return;
 
-	mmt_bin_write_1('n');
-	mmt_bin_write_1('o');
+	mmt_bin_write_1('y');
 	mmt_bin_write_8(addr);
 
-	if ((addr & 0xffff0000) == 0xbeef0000)
-	{
-		mmt_bin_write_str("");
-		mmt_bin_write_buffer((UChar *)"", 0);
-		mmt_bin_end();
+	if ((addr & 0xffff0000) == 0xbeef0000) // TODO: is it still needed?
+		mmt_bin_write_buffer(NULL, 0);
+	else
+		mmt_bin_write_buffer((UChar *)addr, size);
 
-		return;
-	}
-
-	mmt_bin_write_str(s);
-	mmt_bin_write_buffer((UChar *)addr, size);
 	mmt_bin_end();
 }
 
@@ -270,7 +263,7 @@ static int test_page_available(void)
 	return 1;
 }
 
-static void mthd_dumpmem(const char *str, uint64_t *ptr, uint32_t len, int in)
+static void mthd_dumpmem(uint64_t *ptr, uint32_t len, int in)
 {
 	if (mmt_ioctl_call_fuzzer == 1 && !in && *ptr && test_page_available())
 	{
@@ -280,7 +273,7 @@ static void mthd_dumpmem(const char *str, uint64_t *ptr, uint32_t len, int in)
 		*ptr = orig_addr;
 	}
 
-	dumpmem(str, *ptr, len);
+	dumpmem(*ptr, len);
 
 	if (mmt_ioctl_call_fuzzer == 1 && in && *ptr && test_page_available())
 	{
@@ -294,113 +287,103 @@ static void mthd_dumpmem(const char *str, uint64_t *ptr, uint32_t len, int in)
 static void handle_nvrm_ioctl_call(struct nvrm_ioctl_call *s, int in)
 {
 	void *ptr = u64_to_ptr(s->ptr);
-	const char *str;
-	if (in)
-		str = "in";
-	else
-		str = "out";
 
 	if (in)
-		dumpmem(str, s->ptr, s->size);
+		dumpmem(s->ptr, s->size);
 
 	if (s->mthd == 0x10000002)
 	{
 		UInt *addr2 = ptr;
 		//FIXME: this is probably going to crash on 64-bit systems
 		//TODO:  convert to mthd_dumpmem once above will be fixed
-		dumpmem(str, addr2[2], 0x3c);
+		dumpmem(addr2[2], 0x3c);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_BAR0)
 	{
 		struct nvrm_mthd_subdevice_bar0 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 8, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4 * 8, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_GET_CLASSES)
 	{
 		struct nvrm_mthd_device_get_classes *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_FB_GET_PARAMS)
 	{
 		struct nvrm_mthd_subdevice_fb_get_params *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_BUS_GET_PARAMS)
 	{
 		struct nvrm_mthd_subdevice_bus_get_params *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1401)
 	{
 		struct nvrm_mthd_device_unk1401 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt, in);
+		mthd_dumpmem(&m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_GET_FIFO_ENGINES)
 	{
 		struct nvrm_mthd_subdevice_get_fifo_engines *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1102)
 	{
 		struct nvrm_mthd_device_unk1102 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt, in);
+		mthd_dumpmem(&m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK1701)
 	{
 		struct nvrm_mthd_device_unk1701 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt, in);
+		mthd_dumpmem(&m->ptr, m->cnt, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK1201)
 	{
 		struct nvrm_mthd_subdevice_unk1201 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0101)
 	{
 		struct nvrm_mthd_subdevice_unk0101 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4 * 2, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4 * 2, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0522)
 	{
 		struct nvrm_mthd_subdevice_unk0522 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->size, in);
+		mthd_dumpmem(&m->ptr, m->size, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_UNK0512)
 	{
 		struct nvrm_mthd_subdevice_unk0512 *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->size, in);
+		mthd_dumpmem(&m->ptr, m->size, in);
 	}
 	else if (s->mthd == NVRM_MTHD_SUBDEVICE_GET_FIFO_CLASSES)
 	{
 		struct nvrm_mthd_subdevice_get_fifo_classes *m = ptr;
-		mthd_dumpmem(str, &m->ptr, m->cnt * 4, in);
+		mthd_dumpmem(&m->ptr, m->cnt * 4, in);
 	}
 	else if (s->mthd == NVRM_MTHD_DEVICE_UNK170D)
 	{
 		struct nvrm_mthd_device_unk170d *m = ptr;
-		mthd_dumpmem(str, &m->ptr1, m->cnt * 4, in);
-		mthd_dumpmem(str, &m->ptr2, m->cnt * 4, in);
+		mthd_dumpmem(&m->ptr1, m->cnt * 4, in);
+		mthd_dumpmem(&m->ptr2, m->cnt * 4, in);
 	}
 
 	if (!in)
-		dumpmem(str, s->ptr, s->size);
+		dumpmem(s->ptr, s->size);
 }
 
-static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s, int in)
+static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s)
 {
 	void *ptr = u64_to_ptr(s->ptr);
-	const char *str;
-	if (in)
-		str = "in";
-	else
-		str = "out";
 
-	dumpmem(str, s->ptr, s->size);
+	dumpmem(s->ptr, s->size);
 
 	if (s->query == NVRM_QUERY_OBJECT_CLASSES)
 	{
 		struct nvrm_query_object_classes *q = ptr;
-		dumpmem(str, q->ptr, q->cnt * 4);
+		dumpmem(q->ptr, q->cnt * 4);
 	}
 }
 
@@ -471,7 +454,7 @@ static void mess_with_ioctl_create(int fd, UInt *data)
 
 	if (!err)
 	{
-		dumpmem("out", create.ptr, test_size);
+		dumpmem(create.ptr, test_size);
 		mmt_bin_flush();
 		VG_(message)(Vg_UserMsg,
 				"minimal argument size for class 0x%04x: %d bytes (%d words)\n", s->cls, test_size, test_size / 4);
@@ -546,19 +529,19 @@ int mmt_nv_ioctl_pre(UWord *args)
 
 			// argument can be a string (7:0, indicating the bus number), but only if
 			// argument is 0xff
-			dumpmem("in ", s->ptr, 0x3C);
+			dumpmem(s->ptr, 0x3C);
 
 			break;
 		}
 		case NVRM_IOCTL_UNK38:
 		{
 			struct nvrm_ioctl_unk38 *s = (void *)data;
-			dumpmem("in ", s->ptr, s->size);
+			dumpmem(s->ptr, s->size);
 			break;
 		}
 		case NVRM_IOCTL_QUERY:
 		{
-			handle_nvrm_ioctl_query((void *)data, 1);
+			handle_nvrm_ioctl_query((void *)data);
 			break;
 		}
 		case NVRM_IOCTL_CALL:
@@ -569,15 +552,15 @@ int mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_UNK41:
 		{
 			struct nvrm_ioctl_unk41 *s = (void *)data;
-			dumpmem("in", s->ptr1, 4 * s->cnt);
-			dumpmem("in", s->ptr2, 4 * s->cnt);
-			dumpmem("in", s->ptr3, 4 * s->cnt);
+			dumpmem(s->ptr1, 4 * s->cnt);
+			dumpmem(s->ptr2, 4 * s->cnt);
+			dumpmem(s->ptr3, 4 * s->cnt);
 			break;
 		}
 		case NVRM_IOCTL_UNK4D:
 		{
 			struct nvrm_ioctl_unk4d *s = (void *)data;
-			dumpmem("in", s->sptr, s->slen);
+			dumpmem(s->sptr, s->slen);
 			break;
 		}
 		case NVRM_IOCTL_UNK4D_OLD:
@@ -594,7 +577,7 @@ int mmt_nv_ioctl_pre(UWord *args)
 		case NVRM_IOCTL_UNK52:
 		{
 			struct nvrm_ioctl_unk52 *s = (void *)data;
-			dumpmem("in", s->ptr, 8);
+			dumpmem(s->ptr, 8);
 			break;
 		}
 		case NVRM_IOCTL_UNK5E:
@@ -602,7 +585,7 @@ int mmt_nv_ioctl_pre(UWord *args)
 			// Copy data from mem to GPU
 			struct nvrm_ioctl_unk5e *s = (void *)data;
 			if (0)
-				dumpmem("in", s->ptr, 0x01000000);
+				dumpmem(s->ptr, 0x01000000);
 			break;
 		}
 		case NVRM_IOCTL_CREATE:
@@ -612,7 +595,7 @@ int mmt_nv_ioctl_pre(UWord *args)
 
 			if (s->ptr && objtype && !in_fuzzer_mode)
 			{
-				dumpmem("in ", s->ptr, objtype->cargs * 4);
+				dumpmem(s->ptr, objtype->cargs * 4);
 				if (mmt_ioctl_create_fuzzer == 1 && test_page_available())
 				{
 					((uint64_t *)test_page)[0] = s->ptr;
@@ -685,7 +668,7 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 		case NVRM_IOCTL_CREATE_DEV_OBJ:
 		{
 			struct nvrm_ioctl_create_dev_obj *s = (void *)data;
-			dumpmem("out", s->ptr, 0x3C);
+			dumpmem(s->ptr, 0x3C);
 			break;
 		}
 		case NVRM_IOCTL_CALL:
@@ -696,32 +679,32 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 		case NVRM_IOCTL_UNK41:
 		{
 			struct nvrm_ioctl_unk41 *s = (void *)data;
-			dumpmem("out", s->ptr1, 4 * s->cnt);
-			dumpmem("out", s->ptr2, 4 * s->cnt);
-			dumpmem("out", s->ptr3, 4 * s->cnt);
+			dumpmem(s->ptr1, 4 * s->cnt);
+			dumpmem(s->ptr2, 4 * s->cnt);
+			dumpmem(s->ptr3, 4 * s->cnt);
 			break;
 		}
 		case NVRM_IOCTL_UNK4D:
 		{
 			struct nvrm_ioctl_unk4d *s = (void *)data;
-			dumpmem("out", s->sptr, s->slen);
+			dumpmem(s->sptr, s->slen);
 			break;
 		}
 		case NVRM_IOCTL_UNK38:
 		{
 			struct nvrm_ioctl_unk38 *s = (void *)data;
-			dumpmem("out", s->ptr, s->size);
+			dumpmem(s->ptr, s->size);
 			break;
 		}
 		case NVRM_IOCTL_UNK52:
 		{
 			struct nvrm_ioctl_unk52 *s = (void *)data;
-			dumpmem("out", s->ptr, 8);
+			dumpmem(s->ptr, 8);
 			break;
 		}
 		case NVRM_IOCTL_QUERY:
 		{
-			handle_nvrm_ioctl_query((void *)data, 0);
+			handle_nvrm_ioctl_query((void *)data);
 			break;
 		}
 		case NVRM_IOCTL_CREATE:
@@ -730,7 +713,7 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 			const struct nv_object_type *objtype = find_objtype(s->cls);
 
 			if (s->ptr && objtype && !in_fuzzer_mode)
-				dumpmem("out", s->ptr, objtype->cargs * 4);
+				dumpmem(s->ptr, objtype->cargs * 4);
 
 			if (s->cls == NVRM_CLASS_SUBDEVICE_0 && !in_fuzzer_mode)
 			{
