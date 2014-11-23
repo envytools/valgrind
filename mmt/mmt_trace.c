@@ -50,6 +50,7 @@
  *     u = munmap syscall
  *     w = memory write
  *     x = write with info
+ *     y = memory dump
  */
 static struct mmt_mmap_data mmt_mmaps[MMT_MAX_REGIONS];
 static int mmt_last_region = -1;
