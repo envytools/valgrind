@@ -653,6 +653,7 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 				mmt_bin_write_4(id);
 				mmt_bin_write_buffer(NULL, 0);
 				mmt_bin_end();
+				mmt_bin_sync();
 			}
 	}
 	else if (syscallno == __NR_exit_group || syscallno == __NR_exit)
@@ -821,6 +822,7 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 				mmt_bin_write_8(sr_Err(res));
 				mmt_bin_write_buffer(NULL, 0);
 				mmt_bin_end();
+				mmt_bin_sync();
 			}
 
 		mmt_bin_flush();
