@@ -50,14 +50,20 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 #define print_store_begin() \
 		print_begin('w')
 
-#define print_store_with_info_begin() \
-		print_begin('x')
-
 #define print_load_begin() \
 		print_begin('r')
 
-#define print_load_with_info_begin() \
-		print_begin('s')
+#define print_info(type, namestr) do { \
+		mmt_bin_write_1(type); \
+		print_str(namestr); \
+		mmt_bin_end(); \
+	} while (0)
+
+#define print_load_info() \
+		print_info('s', namestr)
+
+#define print_store_info() \
+		print_info('x', namestr)
 
 #define print_1(value) \
 		mmt_bin_write_1(1); \
@@ -130,9 +136,9 @@ void mmt_trace_store_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_1(value);
-	print_str(namestr);
 	print_store_end();
 }
 
@@ -162,9 +168,9 @@ void mmt_trace_store_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_2(value);
-	print_str(namestr);
 	print_store_end();
 }
 
@@ -194,9 +200,9 @@ void mmt_trace_store_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_4(value);
-	print_str(namestr);
 	print_store_end();
 }
 
@@ -227,9 +233,9 @@ void mmt_trace_store_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_8(value);
-	print_str(namestr);
 	print_store_end();
 }
 #endif
@@ -260,9 +266,9 @@ void mmt_trace_store_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_4_4(value1, value2);
-	print_str(namestr);
 	print_store_end();
 }
 
@@ -293,9 +299,9 @@ void mmt_trace_store_bin_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_8_8(value1, value2);
-	print_str(namestr);
 	print_store_end();
 }
 
@@ -327,9 +333,9 @@ void mmt_trace_store_bin_8_8_8_8_ia(Addr addr, UWord value1, UWord value2,
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_8_8_8_8(value1, value2, value3, value4);
-	print_str(namestr);
 	print_store_end();
 }
 #endif
@@ -362,9 +368,9 @@ void mmt_trace_store_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_store_with_info_begin();
+	print_store_info();
+	print_store_begin();
 	print_4_4_4_4(value1, value2, value3, value4);
-	print_str(namestr);
 	print_store_end();
 }
 #endif
@@ -395,9 +401,9 @@ void mmt_trace_load_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_1(value);
-	print_str(namestr);
 	print_load_end();
 }
 
@@ -427,9 +433,9 @@ void mmt_trace_load_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_2(value);
-	print_str(namestr);
 	print_load_end();
 }
 
@@ -459,9 +465,9 @@ void mmt_trace_load_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_4(value);
-	print_str(namestr);
 	print_load_end();
 }
 
@@ -492,9 +498,9 @@ void mmt_trace_load_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_8(value);
-	print_str(namestr);
 	print_load_end();
 }
 #endif
@@ -525,9 +531,9 @@ void mmt_trace_load_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_4_4(value1, value2);
-	print_str(namestr);
 	print_load_end();
 }
 
@@ -558,9 +564,9 @@ void mmt_trace_load_bin_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_8_8(value1, value2);
-	print_str(namestr);
 	print_load_end();
 }
 
@@ -590,9 +596,9 @@ void mmt_trace_load_bin_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord 
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_8_8_8_8(value1, value2, value3, value4);
-	print_str(namestr);
 	print_load_end();
 }
 #endif
@@ -625,9 +631,9 @@ void mmt_trace_load_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 
 	mydescribe(inst_addr, namestr, 256);
 
-	print_load_with_info_begin();
+	print_load_info();
+	print_load_begin();
 	print_4_4_4_4(value1, value2, value3, value4);
-	print_str(namestr);
 	print_load_end();
 }
 #endif
