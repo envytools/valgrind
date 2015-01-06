@@ -280,6 +280,7 @@ static force_inline struct mmt_mmap_data *__mmt_bsearch(Addr addr, int *next)
 static void add_neg(Addr start, Addr end)
 {
 #ifdef MMT_DEBUG_VERBOSE
+	mmt_bin_flush();
 	VG_(printf)("adding negative entry: <%p, %p>\n", (void *)start, (void *)end);
 #endif
 
@@ -394,6 +395,7 @@ void mmt_free_region(struct mmt_mmap_data *m)
 	int joined = 0;
 
 #ifdef MMT_DEBUG_VERBOSE
+	mmt_bin_flush();
 	VG_(printf)("freeing region: <%p, %p>\n", (void *)start, (void *)end);
 #endif
 
@@ -532,6 +534,7 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 	end = (end + VKI_PAGE_SIZE - 1) & ~(VKI_PAGE_SIZE - 1);
 
 #ifdef MMT_DEBUG_VERBOSE
+	mmt_bin_flush();
 	VG_(printf)("adding region: <%p, %p>\n", (void *)start, (void *)end);
 #endif
 
