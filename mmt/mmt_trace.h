@@ -53,6 +53,7 @@ struct negative_region {
 
 extern struct negative_region neg_regions[];
 extern struct mmt_mmap_data *last_used_region;
+extern int all_mem;
 
 static force_inline struct mmt_mmap_data *find_mmap(Addr addr)
 {

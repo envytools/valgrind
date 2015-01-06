@@ -47,11 +47,24 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 		mmt_bin_write_4((UInt)(addr - region->start)); \
 	} while (0)
 
-#define print_store_begin() \
-		print_begin('w')
+#define print_begin2(type) do { \
+		mmt_bin_write_1(type); \
+		mmt_bin_write_8(addr); \
+	} while (0)
 
-#define print_load_begin() \
-		print_begin('r')
+#define print_store_begin() do { \
+		if (all_mem) \
+			print_begin2('W'); \
+		else \
+			print_begin('w'); \
+	} while (0)
+
+#define print_load_begin() do { \
+		if (all_mem) \
+			print_begin2('R'); \
+		else \
+			print_begin('r'); \
+	} while (0)
 
 #define print_info(type, namestr) do { \
 		mmt_bin_write_1(type); \
@@ -113,11 +126,14 @@ static void mydescribe(Addr inst_addr, char *namestr, int len)
 VG_REGPARM(2)
 void mmt_trace_store_bin_1(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_1(value);
@@ -127,12 +143,15 @@ void mmt_trace_store_bin_1(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_store_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -145,11 +164,14 @@ void mmt_trace_store_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_store_bin_2(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_2(value);
@@ -159,12 +181,15 @@ void mmt_trace_store_bin_2(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_store_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -177,11 +202,14 @@ void mmt_trace_store_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_store_bin_4(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_4(value);
@@ -191,12 +219,15 @@ void mmt_trace_store_bin_4(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_store_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -210,11 +241,14 @@ void mmt_trace_store_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_store_bin_8(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_8(value);
@@ -224,12 +258,15 @@ void mmt_trace_store_bin_8(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_store_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -243,11 +280,14 @@ void mmt_trace_store_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_store_bin_4_4(Addr addr, UWord value1, UWord value2)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_4_4(value1, value2);
@@ -257,12 +297,15 @@ void mmt_trace_store_bin_4_4(Addr addr, UWord value1, UWord value2)
 VG_REGPARM(2)
 void mmt_trace_store_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -276,11 +319,14 @@ void mmt_trace_store_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst
 VG_REGPARM(2)
 void mmt_trace_store_bin_8_8(Addr addr, UWord value1, UWord value2)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_8_8(value1, value2);
@@ -290,12 +336,15 @@ void mmt_trace_store_bin_8_8(Addr addr, UWord value1, UWord value2)
 VG_REGPARM(2)
 void mmt_trace_store_bin_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -309,11 +358,14 @@ VG_REGPARM(2)
 void mmt_trace_store_bin_8_8_8_8(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_8_8_8_8(value1, value2, value3, value4);
@@ -324,12 +376,15 @@ VG_REGPARM(2)
 void mmt_trace_store_bin_8_8_8_8_ia(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4, UWord inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -345,11 +400,14 @@ VG_REGPARM(2)
 void mmt_trace_store_bin_4_4_4_4(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_store_begin();
 	print_4_4_4_4(value1, value2, value3, value4);
@@ -359,12 +417,15 @@ VG_REGPARM(2)
 void mmt_trace_store_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -378,11 +439,14 @@ void mmt_trace_store_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 VG_REGPARM(2)
 void mmt_trace_load_bin_1(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_1(value);
@@ -392,12 +456,15 @@ void mmt_trace_load_bin_1(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_load_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -410,11 +477,14 @@ void mmt_trace_load_bin_1_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_load_bin_2(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_2(value);
@@ -424,12 +494,15 @@ void mmt_trace_load_bin_2(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_load_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -442,11 +515,14 @@ void mmt_trace_load_bin_2_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_load_bin_4(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_4(value);
@@ -456,12 +532,15 @@ void mmt_trace_load_bin_4(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_load_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -475,11 +554,14 @@ void mmt_trace_load_bin_4_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_load_bin_8(Addr addr, UWord value)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_8(value);
@@ -489,12 +571,15 @@ void mmt_trace_load_bin_8(Addr addr, UWord value)
 VG_REGPARM(2)
 void mmt_trace_load_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -508,11 +593,14 @@ void mmt_trace_load_bin_8_ia(Addr addr, UWord value, Addr inst_addr)
 VG_REGPARM(2)
 void mmt_trace_load_bin_4_4(Addr addr, UWord value1, UWord value2)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_4_4(value1, value2);
@@ -522,12 +610,15 @@ void mmt_trace_load_bin_4_4(Addr addr, UWord value1, UWord value2)
 VG_REGPARM(2)
 void mmt_trace_load_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -541,11 +632,14 @@ void mmt_trace_load_bin_4_4_ia(Addr addr, UWord value1, UWord value2, Addr inst_
 VG_REGPARM(2)
 void mmt_trace_load_bin_8_8(Addr addr, UWord value1, UWord value2)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_8_8(value1, value2);
@@ -555,12 +649,15 @@ void mmt_trace_load_bin_8_8(Addr addr, UWord value1, UWord value2)
 VG_REGPARM(2)
 void mmt_trace_load_bin_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -573,11 +670,14 @@ void mmt_trace_load_bin_8_8_ia(Addr addr, UWord value1, UWord value2, Addr inst_
 VG_REGPARM(2)
 void mmt_trace_load_bin_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_8_8_8_8(value1, value2, value3, value4);
@@ -587,12 +687,15 @@ void mmt_trace_load_bin_8_8_8_8(Addr addr, UWord value1, UWord value2, UWord val
 VG_REGPARM(2)
 void mmt_trace_load_bin_8_8_8_8_ia(Addr addr, UWord value1, UWord value2, UWord value3, UWord value4, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
@@ -608,11 +711,14 @@ VG_REGPARM(2)
 void mmt_trace_load_bin_4_4_4_4(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	print_load_begin();
 	print_4_4_4_4(value1, value2, value3, value4);
@@ -622,12 +728,15 @@ VG_REGPARM(2)
 void mmt_trace_load_bin_4_4_4_4_ia(Addr addr, UWord value1, UWord value2,
 		UWord value3, UWord value4, Addr inst_addr)
 {
-	struct mmt_mmap_data *region;
+	struct mmt_mmap_data *region = NULL;
 	char namestr[256];
 
-	region = find_mmap(addr);
-	if (LIKELY(!region))
-		return;
+	if (LIKELY(!all_mem))
+	{
+		region = find_mmap(addr);
+		if (LIKELY(!region))
+			return;
+	}
 
 	mydescribe(inst_addr, namestr, 256);
 
