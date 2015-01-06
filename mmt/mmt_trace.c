@@ -299,6 +299,12 @@ static noinline struct mmt_mmap_data *mmt_bsearch(Addr addr)
 	struct mmt_mmap_data *region;
 	int tmp;
 
+	if (UNLIKELY(mmt_last_region < 0))
+	{
+		add_neg(0, (Addr)-1);
+		return NULL;
+	}
+
 	/* before first? */
 	if (addr < mmt_mmaps[0].start)
 	{
@@ -540,7 +546,7 @@ struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 
 	mmt_assert2(mmt_last_region + 1 < MMT_MAX_REGIONS, "not enough space for new mmap!");
 
-	if (start >= mmt_mmaps[mmt_last_region].end)
+	if (mmt_last_region < 0 || start >= mmt_mmaps[mmt_last_region].end)
 		region = &mmt_mmaps[++mmt_last_region];
 	else
 	{
