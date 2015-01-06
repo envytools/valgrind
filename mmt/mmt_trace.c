@@ -44,11 +44,13 @@
  *     n = nvidia/nouveau messages (see mmt_nv_ioctl.c for list of subtypes)
  *     o = open syscall
  *     r = memory read
+ *     R = memory read (full address)
  *     s = info for next read
  *     S = sync marker
  *     t = write syscall
  *     u = munmap syscall
  *     w = memory write
+ *     W = memory write (full address)
  *     x = info for next write
  *     y = memory dump
  */
@@ -73,6 +75,8 @@ struct negative_region neg_regions[NEG_REGS];
 static int neg_regions_number;
 
 #define noinline	__attribute__((noinline))
+
+int all_mem = 0;
 
 static maybe_unused void dump_state(void)
 {

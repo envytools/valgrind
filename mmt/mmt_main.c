@@ -45,6 +45,7 @@
 #define TN_OPT "--mmt-trace-nvidia-ioctls"
 #define TO_OPT "--mmt-trace-all-opens"
 #define TA_OPT "--mmt-trace-all-files"
+#define TMEM_OPT "--mmt-trace-all-mem"
 #define TM_OPT "--mmt-trace-marks"
 #define TV_OPT "--mmt-trace-nouveau-ioctls"
 #define TS_OPT "--mmt-trace-stdout-stderr"
@@ -155,6 +156,11 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 		mmt_sync_file = VG_(strdup)("mmt.options-parsing", val);
 		return True;
 	}
+	else if (VG_(strcmp)(arg, TMEM_OPT) == 0)
+	{
+		all_mem = 1;
+		return True;
+	}
 
 	return False;
 }
@@ -165,6 +171,7 @@ static void mmt_print_usage(void)
 		 "                                this file (e.g. /dev/nvidia0) (you can pass \n"
 		 "                                this option multiple times)\n");
 	VG_(printf)("    " TA_OPT     "       trace loads and stores to memory mapped for\n\t\t\t\tall files\n");
+	VG_(printf)("    " TMEM_OPT "         trace loads and stores for all memory\n");
 	VG_(printf)("    " TN_OPT         "   trace nvidia ioctls on /dev/nvidiactl and\n\t\t\t\t/dev/nvidia0\n");
 	VG_(printf)("    " TV_OPT          "  trace nouveau ioctls on /dev/dri/cardX\n");
 	VG_(printf)("    " TO_OPT     "       trace all 'open' syscalls\n");
