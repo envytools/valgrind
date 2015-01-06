@@ -378,46 +378,6 @@ struct mmt_mmap_data *__find_mmap_slow(Addr addr)
 	return region;
 }
 
-struct mmt_mmap_data *mmt_find_region_by_fd_offset(int fd, Off64T offset)
-{
-	int i;
-	struct mmt_mmap_data *fd0_region = NULL;
-
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		struct mmt_mmap_data *region = &mmt_mmaps[i];
-		if (region->offset == offset)
-		{
-			if (region->fd == fd)
-				return region;
-			if (region->fd == 0)
-				fd0_region = region;
-		}
-	}
-
-	return fd0_region;
-}
-
-struct mmt_mmap_data *mmt_find_region_by_fdset_offset(fd_set *fds, Off64T offset)
-{
-	int i;
-	struct mmt_mmap_data *fd0_region = NULL;
-
-	for (i = 0; i <= mmt_last_region; ++i)
-	{
-		struct mmt_mmap_data *region = &mmt_mmaps[i];
-		if (region->offset == offset)
-		{
-			if (FD_ISSET(region->fd, fds))
-				return region;
-			if (region->fd == 0)
-				fd0_region = region;
-		}
-	}
-
-	return fd0_region;
-}
-
 static void remove_neg_region(int idx)
 {
 	VG_(memmove)(&neg_regions[idx], &neg_regions[idx + 1], (neg_regions_number - idx - 1) * sizeof(neg_regions[0]));
