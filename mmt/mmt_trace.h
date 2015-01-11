@@ -36,6 +36,9 @@ void mmt_free_region(struct mmt_mmap_data *m);
 struct mmt_mmap_data *mmt_add_region(int fd, Addr start, Addr end,
 		Off64T offset, UInt id);
 
+struct mmt_mmap_data *mmt_map_region(int fd, Addr start, Addr end, Off64T offset, int prot, int flags);
+void mmt_unmap_region(struct mmt_mmap_data *region);
+
 void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs);
 
 void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs, SysRes res);
