@@ -22,6 +22,7 @@
 */
 
 #include "mmt_trace.h"
+#include "mmt_fglrx_ioctl.h"
 #include "mmt_nv_ioctl.h"
 #include "mmt_nouveau_ioctl.h"
 #include "mmt_trace_bin.h"
@@ -616,8 +617,11 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 	if (syscallno == __NR_ioctl)
 	{
 		int fd = args[0];
-		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls || mmt_trace_nouveau_ioctls))
-			if (mmt_nv_ioctl_pre(args) == 0 && mmt_nouveau_ioctl_pre(args) == 0)
+		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls ||
+				mmt_trace_nouveau_ioctls || mmt_trace_fglrx_ioctls))
+			if (mmt_nv_ioctl_pre(args) == 0 &&
+					mmt_nouveau_ioctl_pre(args) == 0 &&
+					mmt_fglrx_ioctl_pre(args) == 0)
 			{
 				UInt id = args[1];
 
@@ -685,6 +689,24 @@ static void post_close(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 		FD_CLR(fd, &trace_fds);
 }
 
+struct mmt_mmap_data *mmt_map_region(int fd, Addr start, Addr end, Off64T offset, int prot, int flags)
+{
+	struct mmt_mmap_data *region = mmt_add_region(fd, start, end, offset, 0);
+
+	mmt_bin_write_1('M');
+	mmt_bin_write_8(region->offset);
+	mmt_bin_write_4(prot);
+	mmt_bin_write_4(flags);
+	mmt_bin_write_4(fd);
+	mmt_bin_write_4(region->id);
+	mmt_bin_write_8(region->start);
+	mmt_bin_write_8(end - start);
+	mmt_bin_end();
+	mmt_bin_sync();
+
+	return region;
+}
+
 static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int offset_unit)
 {
 	Addr start = args[0];
@@ -693,7 +715,6 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	unsigned long flags = args[3];
 	unsigned long fd = args[4];
 	unsigned long offset = args[5];
-	struct mmt_mmap_data *region;
 
 	if (res._isError || (int)fd == -1)
 		return;
@@ -703,18 +724,22 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	if (!FD_ISSET(fd, &trace_fds))
 		return;
 
-	region = mmt_add_region(fd, start, start + len, offset * offset_unit, 0);
+	mmt_map_region(fd, start, start + len, offset * offset_unit, prot, flags);
+}
 
-	mmt_bin_write_1('M');
+void mmt_unmap_region(struct mmt_mmap_data *region)
+{
+	mmt_bin_write_1('u');
 	mmt_bin_write_8(region->offset);
-	mmt_bin_write_4(prot);
-	mmt_bin_write_4(flags);
-	mmt_bin_write_4(fd);
 	mmt_bin_write_4(region->id);
 	mmt_bin_write_8(region->start);
-	mmt_bin_write_8(len);
+	mmt_bin_write_8(region->end - region->start);
+	mmt_bin_write_8(0);
+	mmt_bin_write_8(0);
 	mmt_bin_end();
 	mmt_bin_sync();
+
+	mmt_free_region(region);
 }
 
 static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -731,17 +756,7 @@ static void post_munmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 	if (!region)
 		return;
 
-	mmt_bin_write_1('u');
-	mmt_bin_write_8(region->offset);
-	mmt_bin_write_4(region->id);
-	mmt_bin_write_8(region->start);
-	mmt_bin_write_8(region->end - region->start);
-	mmt_bin_write_8(0);
-	mmt_bin_write_8(0);
-	mmt_bin_end();
-	mmt_bin_sync();
-
-	mmt_free_region(region);
+	mmt_unmap_region(region);
 }
 
 static void post_mremap(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
@@ -783,8 +798,11 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 	if (syscallno == __NR_ioctl)
 	{
 		int fd = args[0];
-		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls || mmt_trace_nouveau_ioctls))
-			if (mmt_nv_ioctl_post(args, res) == 0 && mmt_nouveau_ioctl_post(args, res) == 0)
+		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls ||
+				mmt_trace_nouveau_ioctls || mmt_trace_fglrx_ioctls))
+			if (mmt_nv_ioctl_post(args, res) == 0 &&
+					mmt_nouveau_ioctl_post(args, res) == 0 &&
+					mmt_fglrx_ioctl_post(args, res) == 0)
 			{
 				UInt id = args[1];
 
