@@ -99,7 +99,7 @@ void mmt_bin_write_2(UShort u16);
 void mmt_bin_write_4(UInt u32);
 void mmt_bin_write_8(ULong u64);
 void mmt_bin_write_str(const char *str);
-void mmt_bin_write_buffer(UChar *buffer, int len);
+void mmt_bin_write_buffer(const UChar *buffer, int len);
 
 void mmt_bin_flush(void);
 void mmt_bin_flush_and_sync(void);
