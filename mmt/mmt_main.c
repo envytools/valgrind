@@ -36,6 +36,7 @@
 
 #include <fcntl.h>
 
+#include "mmt_fglrx_ioctl.h"
 #include "mmt_nv_ioctl.h"
 #include "mmt_nouveau_ioctl.h"
 #include "mmt_instrument.h"
@@ -48,6 +49,7 @@
 #define TMEM_OPT "--mmt-trace-all-mem"
 #define TM_OPT "--mmt-trace-marks"
 #define TV_OPT "--mmt-trace-nouveau-ioctls"
+#define TG_OPT "--mmt-trace-fglrx-ioctls"
 #define TS_OPT "--mmt-trace-stdout-stderr"
 #define FZ_OPT "--mmt-ioctl-create-fuzzer="
 #define OT_OPT "--mmt-object-ctr="
@@ -95,6 +97,11 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 	else if (VG_(strcmp)(arg, TV_OPT) == 0)
 	{
 		mmt_trace_nouveau_ioctls = True;
+		return True;
+	}
+	else if (VG_(strcmp)(arg, TG_OPT) == 0)
+	{
+		mmt_trace_fglrx_ioctls = True;
 		return True;
 	}
 	else if (VG_(strcmp)(arg, TS_OPT) == 0)
@@ -174,6 +181,7 @@ static void mmt_print_usage(void)
 	VG_(printf)("    " TMEM_OPT "         trace loads and stores for all memory\n");
 	VG_(printf)("    " TN_OPT         "   trace nvidia ioctls on /dev/nvidiactl and\n\t\t\t\t/dev/nvidia0\n");
 	VG_(printf)("    " TV_OPT          "  trace nouveau ioctls on /dev/dri/cardX\n");
+	VG_(printf)("    " TG_OPT        "    trace fglrx ioctls\n");
 	VG_(printf)("    " TO_OPT     "       trace all 'open' syscalls\n");
 	VG_(printf)("    " TM_OPT "           send mmiotrace marks before and after ioctls\n");
 	VG_(printf)("    " TS_OPT         "   trace writes to stdout and stderr\n");
