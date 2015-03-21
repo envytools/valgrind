@@ -13,7 +13,7 @@
 #define MMT_DEBUG
 //#define MMT_DEBUG_VERBOSE
 #define MMT_MAX_TRACE_FILES 10
-#define MMT_MAX_REGIONS 1000
+#define MMT_MAX_REGIONS 5000
 
 struct mmt_mmap_data {
 	Addr start;
