@@ -156,11 +156,11 @@ struct nvrm_ioctl_unk38 {
 };
 #define NVRM_IOCTL_UNK38 _IOWR(NVRM_IOCTL_MAGIC, 0x38, struct nvrm_ioctl_unk38)
 
-struct nvrm_ioctl_unk41 {
+struct nvrm_ioctl_sched_fifo {
 	uint32_t cid;
-	uint32_t handle1;
-	uint32_t handle2;
-	uint32_t cnt;
+	uint32_t dev;
+	uint32_t handle; // NVRM_FIFO_* handle / something else
+	uint32_t cnt;    // 0 when handle is a fifo, >0 otherwise
 	uint64_t ptr1;
 	uint64_t ptr2;
 	uint64_t ptr3;
@@ -169,15 +169,15 @@ struct nvrm_ioctl_unk41 {
 	uint32_t status;
 	uint32_t _pad;
 };
-#define NVRM_IOCTL_UNK41 _IOWR(NVRM_IOCTL_MAGIC, 0x41, struct nvrm_ioctl_unk41)
+#define NVRM_IOCTL_SCHED_FIFO _IOWR(NVRM_IOCTL_MAGIC, 0x41, struct nvrm_ioctl_sched_fifo)
 
-struct nvrm_ioctl_unk48 {
+struct nvrm_ioctl_disp_unk48 {
 	uint32_t cid;
 	uint32_t handle;
 	uint32_t unk08;
 	uint32_t _pad;
 };
-#define NVRM_IOCTL_UNK48 _IOWR(NVRM_IOCTL_MAGIC, 0x48, struct nvrm_ioctl_unk48)
+#define NVRM_IOCTL_DISP_UNK48 _IOWR(NVRM_IOCTL_MAGIC, 0x48, struct nvrm_ioctl_disp_unk48)
 
 struct nvrm_ioctl_memory {
 	uint32_t cid;
@@ -211,7 +211,7 @@ struct nvrm_ioctl_memory {
 };
 #define NVRM_IOCTL_MEMORY _IOWR(NVRM_IOCTL_MAGIC, 0x4a, struct nvrm_ioctl_memory)
 
-struct nvrm_ioctl_unk4d {
+struct nvrm_ioctl_config {
 	uint32_t cid;
 	uint32_t handle;
 	uint64_t unk08;
@@ -224,7 +224,7 @@ struct nvrm_ioctl_unk4d {
 	uint32_t status;
 	uint32_t _pad;
 };
-#define NVRM_IOCTL_UNK4D _IOWR(NVRM_IOCTL_MAGIC, 0x4d, struct nvrm_ioctl_unk4d)
+#define NVRM_IOCTL_CONFIG _IOWR(NVRM_IOCTL_MAGIC, 0x4d, struct nvrm_ioctl_config)
 
 struct nvrm_ioctl_unk4d_old {
 	uint32_t unk00;
@@ -380,8 +380,33 @@ struct nvrm_ioctl_card_info2 {
 		uint32_t _pad3;
 	} card[32];
 };
+struct nvrm_ioctl_card_info3 {
+	struct {
+		uint32_t flags;
+		uint32_t domain;
+		uint8_t bus;
+		uint8_t slot;
+		uint8_t function;
+		uint8_t _pad0;
+		uint16_t vendor_id;
+		uint16_t device_id;
+		uint32_t _pad1;
+		uint32_t gpu_id;
+		uint32_t interrupt;
+		uint32_t _pad2;
+		uint64_t reg_address;
+		uint64_t reg_size;
+		uint64_t fb_address;
+		uint64_t fb_size;
+		uint32_t index;
+		uint32_t _pad3;
+		uint32_t _pad4;
+		uint32_t _pad5;
+	} card[32];
+};
 #define NVRM_IOCTL_CARD_INFO _IOWR(NVRM_IOCTL_MAGIC, NVRM_IOCTL_ESC_BASE+0, struct nvrm_ioctl_card_info)
 #define NVRM_IOCTL_CARD_INFO2 _IOWR(NVRM_IOCTL_MAGIC, NVRM_IOCTL_ESC_BASE+0, struct nvrm_ioctl_card_info2)
+#define NVRM_IOCTL_CARD_INFO3 _IOWR(NVRM_IOCTL_MAGIC, NVRM_IOCTL_ESC_BASE+0, struct nvrm_ioctl_card_info3)
 
 struct nvrm_ioctl_env_info {
 	uint32_t pat_supported;
