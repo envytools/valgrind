@@ -551,17 +551,17 @@ int mmt_nv_ioctl_pre(UWord *args)
 			handle_nvrm_ioctl_call((void *)data, 1);
 			break;
 		}
-		case NVRM_IOCTL_UNK41:
+		case NVRM_IOCTL_SCHED_FIFO:
 		{
-			struct nvrm_ioctl_unk41 *s = (void *)data;
+			struct nvrm_ioctl_sched_fifo *s = (void *)data;
 			dumpmem(s->ptr1, 4 * s->cnt);
 			dumpmem(s->ptr2, 4 * s->cnt);
 			dumpmem(s->ptr3, 4 * s->cnt);
 			break;
 		}
-		case NVRM_IOCTL_UNK4D:
+		case NVRM_IOCTL_CONFIG:
 		{
-			struct nvrm_ioctl_unk4d *s = (void *)data;
+			struct nvrm_ioctl_config *s = (void *)data;
 			dumpmem(s->sptr, s->slen);
 			break;
 		}
@@ -678,17 +678,17 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 			handle_nvrm_ioctl_call((void *)data, 0);
 			break;
 		}
-		case NVRM_IOCTL_UNK41:
+		case NVRM_IOCTL_SCHED_FIFO:
 		{
-			struct nvrm_ioctl_unk41 *s = (void *)data;
+			struct nvrm_ioctl_sched_fifo *s = (void *)data;
 			dumpmem(s->ptr1, 4 * s->cnt);
 			dumpmem(s->ptr2, 4 * s->cnt);
 			dumpmem(s->ptr3, 4 * s->cnt);
 			break;
 		}
-		case NVRM_IOCTL_UNK4D:
+		case NVRM_IOCTL_CONFIG:
 		{
-			struct nvrm_ioctl_unk4d *s = (void *)data;
+			struct nvrm_ioctl_config *s = (void *)data;
 			dumpmem(s->sptr, s->slen);
 			break;
 		}
