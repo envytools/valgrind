@@ -714,7 +714,7 @@ static void post_mmap(ThreadId tid, UWord *args, UInt nArgs, SysRes res, int off
 	unsigned long prot = args[2];
 	unsigned long flags = args[3];
 	unsigned long fd = args[4];
-	unsigned long offset = args[5];
+	Off64T offset = args[5];
 
 	if (res._isError || (int)fd == -1)
 		return;
