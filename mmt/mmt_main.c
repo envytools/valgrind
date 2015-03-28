@@ -62,16 +62,14 @@ static Bool mmt_process_cmd_line_option(const HChar *arg)
 //	VG_(printf)("arg: %s\n", arg);
 	if (VG_(strncmp)(arg, TF_OPT, VG_(strlen(TF_OPT))) == 0)
 	{
-		int i;
-		for (i = 0; i < MMT_MAX_TRACE_FILES; ++i)
-			if (mmt_trace_files[i] == NULL)
-				break;
-		if (i == MMT_MAX_TRACE_FILES)
+		if (mmt_trace_files_num >= MMT_MAX_TRACE_FILES)
 		{
 			VG_(printf)("too many files to trace\n");
 			return False;
 		}
-		mmt_trace_files[i] = VG_(strdup)("mmt.options-parsing", arg + VG_(strlen(TF_OPT)));
+
+		mmt_trace_files[mmt_trace_files_num++] =
+				VG_(strdup)("mmt.options-parsing", arg + VG_(strlen(TF_OPT)));
 		return True;
 	}
 	else if (VG_(strcmp)(arg, TN_OPT) == 0)
