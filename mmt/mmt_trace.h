@@ -29,6 +29,7 @@ extern fd_set trace_fds;
 
 extern int mmt_trace_all_opens;
 extern char *mmt_trace_files[MMT_MAX_TRACE_FILES];
+extern int mmt_trace_files_num;
 extern int mmt_trace_all_files;
 extern int mmt_trace_stdout_stderr;
 

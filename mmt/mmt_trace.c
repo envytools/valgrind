@@ -63,6 +63,7 @@ static UInt mmt_current_item = 1;
 
 int mmt_trace_all_opens = False;
 char *mmt_trace_files[MMT_MAX_TRACE_FILES];
+int mmt_trace_files_num = 0;
 fd_set trace_fds;
 
 int mmt_trace_all_files = False;
@@ -671,14 +672,23 @@ static void post_open(ThreadId tid, UWord *args, UInt nArgs, SysRes res)
 		FD_SET(res._val, &trace_fds);
 	else
 	{
-		for (i = 0; i < MMT_MAX_TRACE_FILES; ++i)
+		for (i = 0; i < mmt_trace_files_num; ++i)
 		{
 			const char *path2 = mmt_trace_files[i];
-			if (path2 != NULL && VG_(strcmp)(path, path2) == 0)
+			if (VG_(strcmp)(path, path2) == 0)
 			{
 				FD_SET(res._val, &trace_fds);
 				break;
 			}
+		}
+
+		if (mmt_trace_files_num == 0)
+		{
+			if (mmt_trace_nvidia_ioctls && VG_(strncmp)(path, "/dev/nvidia", 11) == 0)
+				FD_SET(res._val, &trace_fds);
+			else if (mmt_trace_fglrx_ioctls && VG_(strncmp)(path, "/dev/ati/", 9) == 0)
+				FD_SET(res._val, &trace_fds);
+			// nouveau will be detected at ioctl time
 		}
 	}
 
