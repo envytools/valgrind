@@ -26,6 +26,7 @@
 #include "mmt_nv_ioctl.h"
 #include "mmt_nouveau_ioctl.h"
 #include "mmt_trace_bin.h"
+#include "vki-linux-drm-nouveau.h"
 
 #include "pub_tool_libcbase.h"
 #include "pub_tool_libcprint.h"
@@ -617,14 +618,18 @@ void mmt_pre_syscall(ThreadId tid, UInt syscallno, UWord *args, UInt nArgs)
 	if (syscallno == __NR_ioctl)
 	{
 		int fd = args[0];
+		UInt id = args[1];
+
+		if (mmt_trace_nouveau_ioctls && !FD_ISSET(fd, &trace_fds) &&
+				id == VKI_DRM_IOCTL_NOUVEAU_GETPARAM)
+			FD_SET(fd, &trace_fds);
+
 		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls ||
 				mmt_trace_nouveau_ioctls || mmt_trace_fglrx_ioctls))
 			if (mmt_nv_ioctl_pre(args) == 0 &&
 					mmt_nouveau_ioctl_pre(args) == 0 &&
 					mmt_fglrx_ioctl_pre(args) == 0)
 			{
-				UInt id = args[1];
-
 				mmt_bin_write_1('i');
 				mmt_bin_write_4(fd);
 				mmt_bin_write_4(id);
@@ -798,14 +803,22 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 	if (syscallno == __NR_ioctl)
 	{
 		int fd = args[0];
+		UInt id = args[1];
+
+		if (mmt_trace_nouveau_ioctls && !FD_ISSET(fd, &trace_fds) &&
+				id == VKI_DRM_IOCTL_VERSION)
+		{
+			struct vki_drm_version *d = (void *)args[2];
+			if (d->name && VG_(strncmp(d->name, "nouveau", d->name_len)) == 0)
+				FD_SET(fd, &trace_fds);
+		}
+
 		if (FD_ISSET(fd, &trace_fds) && (mmt_trace_nvidia_ioctls ||
 				mmt_trace_nouveau_ioctls || mmt_trace_fglrx_ioctls))
 			if (mmt_nv_ioctl_post(args, res) == 0 &&
 					mmt_nouveau_ioctl_post(args, res) == 0 &&
 					mmt_fglrx_ioctl_post(args, res) == 0)
 			{
-				UInt id = args[1];
-
 				mmt_bin_write_1('j');
 				mmt_bin_write_4(fd);
 				mmt_bin_write_4(id);
