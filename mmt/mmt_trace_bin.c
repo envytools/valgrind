@@ -29,10 +29,10 @@
 
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
-	char filename[100];
+	const char* filename;
 	UInt line = 0;
 
-	if (VG_(get_filename)(inst_addr, filename, 100))
+	if (VG_(get_filename)(inst_addr, &filename))
 	{
 		VG_(get_linenum)(inst_addr, &line);
 		VG_(snprintf) (namestr, len, "@%08lx (%s:%d)", inst_addr, filename, line);
