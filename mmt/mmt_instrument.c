@@ -715,9 +715,9 @@ static void add_trace_store(IRSB *bbOut, IRExpr *destAddr, Addr inst_addr,
 
 IRSB *mmt_instrument(VgCallbackClosure *closure,
 				IRSB *bbIn,
-				VexGuestLayout *layout,
-				VexGuestExtents *vge,
-				VexArchInfo* archinfo_host,
+				const VexGuestLayout *layout,
+				const VexGuestExtents *vge,
+				const VexArchInfo* archinfo_host,
 				IRType gWordTy, IRType hWordTy)
 {
 	IRSB *bbOut;
