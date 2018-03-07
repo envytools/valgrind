@@ -843,6 +843,8 @@ void mmt_post_syscall(ThreadId tid, UInt syscallno, UWord *args,
 	}
 	else if (syscallno == __NR_open)
 		post_open(tid, args, nArgs, res);
+	else if (syscallno == __NR_openat)
+		post_open(tid, args+1, nArgs-1, res);
 	else if (syscallno == __NR_close)
 		post_close(tid, args, nArgs, res);
 	else if (syscallno == __NR_mmap)
