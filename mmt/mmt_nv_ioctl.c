@@ -389,7 +389,7 @@ static void handle_nvrm_ioctl_query(struct nvrm_ioctl_query *s)
 	}
 }
 
-static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mthd, void *ptr, int size)
+static SysRes inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mthd, void *ptr, int size)
 {
 	struct nvrm_ioctl_call call;
 	VG_(memset)(&call, 0, sizeof(call));
@@ -403,6 +403,7 @@ static void inject_ioctl_call(int fd, uint32_t cid, uint32_t handle, uint32_t mt
 	mmt_nv_ioctl_pre(ioctlargs);
 	SysRes ioctlres = VG_(do_syscall3)(__NR_ioctl, fd, (UWord)NVRM_IOCTL_CALL, (UWord)&call);
 	mmt_nv_ioctl_post(ioctlargs, ioctlres);
+	return ioctlres;
 }
 
 static int in_fuzzer_mode = 0;
@@ -615,6 +616,25 @@ int mmt_nv_ioctl_pre(UWord *args)
 	return 1;
 }
 
+static void inject_get_chipset(int fd, struct nvrm_ioctl_create *s)
+{
+	// inject GET_CHIPSET ioctl
+	struct nvrm_mthd_subdevice_get_chipset16 chip16;
+	VG_(memset)(&chip16, 0, sizeof(chip16));
+
+	SysRes res = inject_ioctl_call(fd, s->cid, s->handle,
+			NVRM_MTHD_SUBDEVICE_GET_CHIPSET, &chip16, sizeof(chip16));
+
+	if (!sr_Err(res))
+		return;
+
+	// try older variant
+	struct nvrm_mthd_subdevice_get_chipset chip;
+	VG_(memset)(&chip, 0, sizeof(chip));
+	inject_ioctl_call(fd, s->cid, s->handle,
+			NVRM_MTHD_SUBDEVICE_GET_CHIPSET, &chip, sizeof(chip));
+}
+
 int mmt_nv_ioctl_post(UWord *args, SysRes res)
 {
 	int fd = args[0];
@@ -718,14 +738,7 @@ int mmt_nv_ioctl_post(UWord *args, SysRes res)
 				dumpmem(s->ptr, objtype->cargs * 4);
 
 			if (s->cls == NVRM_CLASS_SUBDEVICE_0 && !in_fuzzer_mode)
-			{
-				// inject GET_CHIPSET ioctl
-				struct nvrm_mthd_subdevice_get_chipset chip;
-				VG_(memset)(&chip, 0, sizeof(chip));
-
-				inject_ioctl_call(fd, s->cid, s->handle, NVRM_MTHD_SUBDEVICE_GET_CHIPSET,
-					&chip, sizeof(chip));
-			}
+				inject_get_chipset(fd, s);
 
 			break;
 		}
