@@ -76,6 +76,8 @@ struct nv_object_type mmt_nv_object_types[] =
 
 	{0x3066, 4},
 
+	{0xa06c, 2},
+
 	{0x406e, 8},
 
 	{0x506f, 8},
@@ -83,6 +85,7 @@ struct nv_object_type mmt_nv_object_types[] =
 	{0x906f, 8},
 	{0xa06f, 8},
 	{0xb06f, 8},
+	{0xc06f, 32},
 
 	{0x8270, 1},
 	{0x8570, 1},
@@ -131,6 +134,7 @@ struct nv_object_type mmt_nv_object_types[] =
 	{0x85b5, 2},
 	{0x90b5, 2},
 	{0xb0b5, 2},
+	{0xc1b5, 2},
 
 	{0x83de, 3},
 
