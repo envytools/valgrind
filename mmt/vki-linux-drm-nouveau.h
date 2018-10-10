@@ -1,9 +1,6 @@
 #ifndef __VKI_LINUX_DRM_NOUEVAU_H
 #define __VKI_LINUX_DRM_NOUEVAU_H
 
-#include "vki/vki-linux.h"
-#include "vki/vki-linux-drm.h"
-
 // nouveau_drm.h
 #define VKI_DRM_NOUVEAU_GETPARAM           0x00
 #define VKI_DRM_NOUVEAU_SETPARAM           0x01
