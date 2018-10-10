@@ -1,5 +1,5 @@
-#ifndef __VKI_LINUX_DRM_NOUEVAU_H
-#define __VKI_LINUX_DRM_NOUEVAU_H
+#ifndef __VKI_LINUX_DRM_NOUVEAU_H
+#define __VKI_LINUX_DRM_NOUVEAU_H
 
 // nouveau_drm.h
 #define VKI_DRM_NOUVEAU_GETPARAM           0x00
