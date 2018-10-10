@@ -29,12 +29,13 @@
 
 static void mydescribe(Addr inst_addr, char *namestr, int len)
 {
+	DiEpoch ep = VG_(current_DiEpoch)();
 	const char* filename;
 	UInt line = 0;
 
-	if (VG_(get_filename)(inst_addr, &filename))
+	if (VG_(get_filename)(ep, inst_addr, &filename))
 	{
-		VG_(get_linenum)(inst_addr, &line);
+		VG_(get_linenum)(ep, inst_addr, &line);
 		VG_(snprintf) (namestr, len, "@%08lx (%s:%d)", inst_addr, filename, line);
 	}
 	else
