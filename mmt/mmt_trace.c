@@ -306,6 +306,12 @@ static noinline struct mmt_mmap_data *mmt_bsearch(Addr addr)
 	struct mmt_mmap_data *region;
 	int tmp;
 
+#ifdef MMT_DEBUG_VERBOSE
+	mmt_bin_flush();
+	VG_(printf)("searching entry for: %p\n", (void*)addr);
+	verify_state();
+#endif
+
 	if (UNLIKELY(mmt_last_region < 0))
 	{
 		add_neg(0, (Addr)-1);
