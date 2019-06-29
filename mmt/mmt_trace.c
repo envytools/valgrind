@@ -503,6 +503,23 @@ void mmt_free_region(struct mmt_mmap_data *m)
 				(mmt_last_region - idx) * sizeof(struct mmt_mmap_data));
 	VG_(memset)(&mmt_mmaps[mmt_last_region--], 0, sizeof(struct mmt_mmap_data));
 
+	/* if we only have one reagion, delete 0-x negative region */
+	if (mmt_last_region == 0) {
+		Bool found;
+		do {
+			found = False;
+			for (i = 0; i < neg_regions_number; ++i)
+			{
+				struct negative_region *neg = &neg_regions[i];
+				if (neg->end != (Addr)-1) {
+					remove_neg_region(i);
+					found = True;
+					break;
+				}
+			}
+		} while (found);
+	}
+
 	/* if we are releasing last used region, then zero cache */
 	if (m == last_used_region)
 		last_used_region = &null_region;
