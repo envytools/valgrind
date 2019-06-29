@@ -306,6 +306,12 @@ static noinline struct mmt_mmap_data *mmt_bsearch(Addr addr)
 	struct mmt_mmap_data *region;
 	int tmp;
 
+#ifdef MMT_DEBUG_VERBOSE
+	mmt_bin_flush();
+	VG_(printf)("searching entry for: %p\n", (void*)addr);
+	verify_state();
+#endif
+
 	if (UNLIKELY(mmt_last_region < 0))
 	{
 		add_neg(0, (Addr)-1);
@@ -496,6 +502,23 @@ void mmt_free_region(struct mmt_mmap_data *m)
 		VG_(memmove)(mmt_mmaps + idx, mmt_mmaps + idx + 1,
 				(mmt_last_region - idx) * sizeof(struct mmt_mmap_data));
 	VG_(memset)(&mmt_mmaps[mmt_last_region--], 0, sizeof(struct mmt_mmap_data));
+
+	/* if we only have one reagion, delete 0-x negative region */
+	if (mmt_last_region == 0) {
+		Bool found;
+		do {
+			found = False;
+			for (i = 0; i < neg_regions_number; ++i)
+			{
+				struct negative_region *neg = &neg_regions[i];
+				if (neg->end != (Addr)-1) {
+					remove_neg_region(i);
+					found = True;
+					break;
+				}
+			}
+		} while (found);
+	}
 
 	/* if we are releasing last used region, then zero cache */
 	if (m == last_used_region)
